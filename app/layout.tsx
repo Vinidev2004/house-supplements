@@ -15,12 +15,19 @@ export const metadata: Metadata = {
   description: "Sistema de gerenciamento de estoque e financeiro para House Supplements",
   generator: "v0.app",
   icons: {
-    icon: "/favicon.ico",      // favicon padrão
-    shortcut: "/favicon.ico",  // ícone de atalho
-    apple: "/favicon.ico",     // para iOS
+    icon: [
+      { url: "/favicon.png/favicon.ico" },
+      { url: "/favicon.png/favicon-96x96.png", sizes: "96x96", type: "image/png" },
+      { url: "/favicon.png/favicon.svg", type: "image/svg+xml" },
+    ],
+    apple: [
+      { url: "/favicon.png/apple-touch-icon.png", sizes: "180x180" },
+    ],
+    other: [
+      { url: "/favicon.png/site.webmanifest", rel: "manifest" },
+    ],
   },
 }
-
 
 export default async function RootLayout({
   children,
@@ -31,6 +38,15 @@ export default async function RootLayout({
 
   return (
     <html lang="pt-BR">
+      <head>
+        {/* Para garantir compatibilidade máxima */}
+        <link rel="icon" type="image/png" href="/favicon.png/favicon-96x96.png" sizes="96x96" />
+        <link rel="icon" type="image/svg+xml" href="/favicon.png/favicon.svg" />
+        <link rel="shortcut icon" href="/favicon.png/favicon.ico" />
+        <link rel="apple-touch-icon" sizes="180x180" href="/favicon.png/apple-touch-icon.png" />
+        <meta name="apple-mobile-web-app-title" content="House Supplements" />
+        <link rel="manifest" href="/favicon.png/site.webmanifest" />
+      </head>
       <body className={`${inter.className} overflow-x-hidden max-w-screen`}>
         {authenticated ? (
           <div className="flex h-screen overflow-hidden">

@@ -1,0 +1,51 @@
+* [33md6b2de3[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m, [m[1;31morigin/HEAD[m[33m)[m primeiro commit
+* [33m203b76d[m[33m ([m[1;31morigin/test[m[33m)[m feat: auto-sync changes from main for house-supplements
+* [33m9642c74[m feat: add toast notifications for phone validation
+* [33m60334b1[m feat: add debug logs to phone formatting function
+* [33maa8091b[m feat: add international phone format support
+* [33m626746f[m feat: enforce international phone format and display Brazilian format
+* [33m1094774[m add debug logs to product form for field rendering
+* [33m64e9a5e[m feat: add consumption days to product list view
+* [33m3d53435[m feat: display consumption time in product list
+* [33m066d74b[m feat: add estimated consumption time field to product form
+* [33m8eb827f[m fix: add missing Supabase dependency
+* [33md02721c[m feat: sync main changes to house-supplements project
+* [33m9c5b2f8[m feat: add debug logs and fix TextMeBot service URL
+* [33m5d0f539[m feat: add automatic notifications and test feature
+* [33me497d2c[m feat: add vibrant colors to login page
+* [33m4aea505[m feat: restore complete CSS variables for dark theme
+* [33m89b0efb[m feat: restore complete globals.css with all color variables
+* [33md1b83e5[m fix: resolve CSS parsing errors in Tailwind v4
+* [33m2359b88[m feat: add international phone number validation
+* [33md41700f[m feat: add migration for callmebot_api_key column
+* [33m3b9e24e[m feat: update settings page to TextMeBot
+* [33m88ae38e[m feat: update settings page to TextMeBot
+* [33m30d4629[m feat: switch to TextMeBot API and fix missing export
+* [33m1565d01[m fix: correct Input and Textarea self-closing tags
+* [33maa014d9[m fix: correct Input and Textarea self-closing tags
+* [33m32ced0a[m feat: replace Baileys with CallMeBot
+* [33mcaf89e5[m fix: restore basic app/page.tsx after revert
+* [33m38c88df[m fix: restore missing Supabase dependencies
+* [33m8095354[m feat: sync main changes to house-supplements project
+* [33m7dabf54[m fix: update login page colors with direct Tailwind styles
+* [33m5f79ebb[m fix: configure Tailwind CSS color variables
+* [33mc8eb9d9[m fix: correct CSS syntax and invalid utility classes
+* [33mea9587f[m fix: remove Baileys dependencies from Next.js
+* [33mdda7f70[m fix: remove native Node.js dependencies from package.json
+* [33mdf5ac64[m feat: add WhatsApp link to menu and create usage guide
+* [33m2c5d5c4[m feat: implement Baileys with web QR code
+* [33m41b6286[m refactor: optimize and clean codebase
+* [33m4397e4f[m fix: update menu logo and enhance login UI
+* [33m0ff2f34[m feat: add House Supplements logo to login screen
+* [33m9c2730c[m fix: replace login logo with dynamic placeholder
+* [33me25f7fe[m feat: restore House Supplements logo in login, sidebar, and mobile menu
+* [33m13265c8[m feat: optimize system performance and remove debug logs
+* [33mfefc6bf[m feat: add debug logs to settings page
+* [33m80a1fc0[m feat: add debug logs to settings API route
+* [33med320ae[m feat: add WhatsApp field and update API with documentation
+* [33mbc48fab[m fix: remove WhatsApp integration and create settings
+* [33m571f91b[m feat: implement WhatsApp notification system
+* [33m3e95076[m feat: add estimated consumption days to product list
+* [33m86fcaa6[m feat: add estimated consumption time field to product form
+* [33m336ec78[m refactor: optimize login and logout performance
+* [33mcf6a637[m[33m ([m[1;31morigin/update[m[33m)[m first commit
