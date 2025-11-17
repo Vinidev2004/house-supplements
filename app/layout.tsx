@@ -13,8 +13,14 @@ const inter = Inter({ subsets: ["latin"] })
 export const metadata: Metadata = {
   title: "House Supplements - Sistema de Gestão",
   description: "Sistema de gerenciamento de estoque e financeiro para House Supplements",
-    generator: 'v0.app'
+  generator: "v0.app",
+  icons: {
+    icon: "/favicon.ico",      // favicon padrão
+    shortcut: "/favicon.ico",  // ícone de atalho
+    apple: "/favicon.ico",     // para iOS
+  },
 }
+
 
 export default async function RootLayout({
   children,
