@@ -25,6 +25,7 @@ export default async function RootLayout({
 
   return (
     <html lang="pt-BR">
+      <link rel="icon" href="/favicon.ico" />
       <body className={`${inter.className} overflow-x-hidden max-w-screen`}>
         {authenticated ? (
           <div className="flex h-screen overflow-hidden">
