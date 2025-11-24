@@ -134,14 +134,31 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
 
         <div className="space-y-2">
           <Label htmlFor="minStock">Estoque Mínimo *</Label>
+
           <Input
             id="minStock"
             type="number"
+            min={0}
             value={formData.minStock}
-            onChange={(e) => setFormData({ ...formData, minStock: e.target.value })}
+            onChange={(e) => {
+              const value = Number(e.target.value)
+
+              // Impede valores negativos mesmo ao colar
+              setFormData({
+                ...formData,
+                minStock: value < 0 ? 0 : value
+              })
+            }}
+            onKeyDown={(e) => {
+              // Impede digitar "-" ou "e"
+              if (e.key === "-" || e.key === "e") {
+                e.preventDefault()
+              }
+            }}
             required
           />
         </div>
+
 
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="estimatedConsumptionDays">Tempo Estimado de Consumo (dias)</Label>
