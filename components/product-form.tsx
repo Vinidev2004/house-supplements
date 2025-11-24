@@ -141,23 +141,28 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
             min={0}
             value={formData.minStock}
             onChange={(e) => {
-              const value = Number(e.target.value)
-
-              // Impede valores negativos mesmo ao colar
+              const value = Number(e.target.value);
               setFormData({
                 ...formData,
                 minStock: value < 0 ? 0 : value
-              })
+              });
             }}
             onKeyDown={(e) => {
-              // Impede digitar "-" ou "e"
+              // Bloqueia digitar "-" e "e"
               if (e.key === "-" || e.key === "e") {
-                e.preventDefault()
+                e.preventDefault();
+              }
+            }}
+            onPaste={(e) => {
+              const paste = e.clipboardData.getData("text");
+              if (Number(paste) < 0) {
+                e.preventDefault();
               }
             }}
             required
           />
         </div>
+
 
 
         <div className="space-y-2 sm:col-span-2">
