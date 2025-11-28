@@ -213,7 +213,8 @@ export default function VendasPage() {
 
   const filteredProducts = products.filter((p) => p.name.toLowerCase().includes(searchProduct.toLowerCase()))
 
-  const updateDiscount = (productId: string, discount: number) => {
+  const updateDiscount = (productId: string, value: string) => {
+    const discount = value === "" ? 0 : Number(value)
     setCart(cart.map((item) => (item.product.id === productId ? { ...item, discount: Math.max(0, discount) } : item)))
   }
 
@@ -345,8 +346,8 @@ export default function VendasPage() {
                               min="0"
                               max={item.product.price * item.quantity}
                               step="0.01"
-                              value={item.discount}
-                              onChange={(e) => updateDiscount(item.product.id, Number(e.target.value))}
+                              value={item.discount === 0 ? "" : item.discount}
+                              onChange={(e) => updateDiscount(item.product.id, e.target.value)}
                               className="h-8 text-sm"
                               placeholder="R$ 0,00"
                             />
