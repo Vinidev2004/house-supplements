@@ -31,7 +31,7 @@ interface CartItem {
   discount: number
 }
 
-export default function VendasPage() {
+export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([])
   const [filteredSales, setFilteredSales] = useState<Sale[]>([])
   const [selectedDate, setSelectedDate] = useState<string>("")
@@ -46,6 +46,7 @@ export default function VendasPage() {
   const [paymentMethod, setPaymentMethod] = useState<string>("cash")
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("")
   const [searchProduct, setSearchProduct] = useState<string>("")
+  const [isProcessingSale, setIsProcessingSale] = useState(false)
 
   const { toast } = useToast()
 
@@ -149,6 +150,10 @@ export default function VendasPage() {
   }
 
   const finalizeSale = async () => {
+    if (isProcessingSale) {
+      return
+    }
+
     if (cart.length === 0) {
       toast({
         title: "Carrinho vazio!",
@@ -158,42 +163,48 @@ export default function VendasPage() {
       return
     }
 
-    const selectedCustomer = customers.find((c) => c.id === selectedCustomerId)
+    setIsProcessingSale(true)
 
-    const sale: Omit<Sale, "id"> = {
-      date: new Date().toISOString(),
-      products: cart.map((item) => ({
-        productId: item.product.id,
-        productName: item.product.name,
-        quantity: item.quantity,
-        price: item.product.price,
-        discount: item.discount > 0 ? item.discount : undefined,
-        subtotal: calculateItemSubtotal(item),
-      })),
-      total: calculateTotal(),
-      paymentMethod: paymentMethod as any,
-      status: "completed",
-      customerId: selectedCustomerId || undefined,
-      customerName: selectedCustomer?.name,
-    }
+    try {
+      const selectedCustomer = customers.find((c) => c.id === selectedCustomerId)
 
-    const result = await addSale(sale)
-    if (result) {
-      toast({
-        title: "Venda realizada com sucesso!",
-        description: `Total: ${formatCurrency(sale.total)}`,
-        variant: "default",
-      })
-      setCart([])
-      setPaymentMethod("cash")
-      setSelectedCustomerId("")
-      await loadData()
-    } else {
-      toast({
-        title: "Erro ao realizar venda",
-        description: "Tente novamente mais tarde.",
-        variant: "destructive",
-      })
+      const sale: Omit<Sale, "id"> = {
+        date: new Date().toISOString(),
+        products: cart.map((item) => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price,
+          discount: item.discount > 0 ? item.discount : undefined,
+          subtotal: calculateItemSubtotal(item),
+        })),
+        total: calculateTotal(),
+        paymentMethod: paymentMethod as any,
+        status: "completed",
+        customerId: selectedCustomerId || undefined,
+        customerName: selectedCustomer?.name,
+      }
+
+      const result = await addSale(sale)
+      if (result) {
+        toast({
+          title: "Venda realizada com sucesso!",
+          description: `Total: ${formatCurrency(sale.total)}`,
+          variant: "default",
+        })
+        setCart([])
+        setPaymentMethod("cash")
+        setSelectedCustomerId("")
+        await loadData()
+      } else {
+        toast({
+          title: "Erro ao realizar venda",
+          description: "Tente novamente mais tarde.",
+          variant: "destructive",
+        })
+      }
+    } finally {
+      setIsProcessingSale(false)
     }
   }
 
@@ -410,8 +421,13 @@ export default function VendasPage() {
                         <span className="text-2xl font-bold text-success">{formatCurrency(calculateTotal())}</span>
                       </div>
 
-                      <Button onClick={finalizeSale} className="w-full" size="lg">
-                        Finalizar Venda
+                      <Button
+                        onClick={finalizeSale}
+                        className="w-full"
+                        size="lg"
+                        disabled={isProcessingSale || cart.length === 0}
+                      >
+                        {isProcessingSale ? "Processando..." : "Finalizar Venda"}
                       </Button>
                     </div>
                   </>
