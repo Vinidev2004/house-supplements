@@ -28,9 +28,10 @@ import { useToast } from "@/hooks/use-toast"
 interface CartItem {
   product: Product
   quantity: number
+  discount: number
 }
 
-export default function VendasPage() {
+export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([])
   const [filteredSales, setFilteredSales] = useState<Sale[]>([])
   const [selectedDate, setSelectedDate] = useState<string>("")
@@ -45,6 +46,7 @@ export default function VendasPage() {
   const [paymentMethod, setPaymentMethod] = useState<string>("cash")
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>("")
   const [searchProduct, setSearchProduct] = useState<string>("")
+  const [isProcessingSale, setIsProcessingSale] = useState(false)
 
   const { toast } = useToast()
 
@@ -127,7 +129,7 @@ export default function VendasPage() {
       }
       setCart(cart.map((item) => (item.product.id === selectedProductId ? { ...item, quantity: newQuantity } : item)))
     } else {
-      setCart([...cart, { product, quantity }])
+      setCart([...cart, { product, quantity, discount: 0 }])
     }
 
     setSelectedProductId("")
@@ -140,10 +142,18 @@ export default function VendasPage() {
   }
 
   const calculateTotal = () => {
-    return cart.reduce((sum, item) => sum + item.product.price * item.quantity, 0)
+    return cart.reduce((sum, item) => sum + item.product.price * item.quantity - item.discount, 0)
+  }
+
+  const calculateItemSubtotal = (item: CartItem) => {
+    return item.product.price * item.quantity - item.discount
   }
 
   const finalizeSale = async () => {
+    if (isProcessingSale) {
+      return
+    }
+
     if (cart.length === 0) {
       toast({
         title: "Carrinho vazio!",
@@ -153,41 +163,48 @@ export default function VendasPage() {
       return
     }
 
-    const selectedCustomer = customers.find((c) => c.id === selectedCustomerId)
+    setIsProcessingSale(true)
 
-    const sale: Omit<Sale, "id"> = {
-      date: new Date().toISOString(),
-      products: cart.map((item) => ({
-        productId: item.product.id,
-        productName: item.product.name,
-        quantity: item.quantity,
-        price: item.product.price,
-        subtotal: item.product.price * item.quantity,
-      })),
-      total: calculateTotal(),
-      paymentMethod: paymentMethod as any,
-      status: "completed",
-      customerId: selectedCustomerId || undefined,
-      customerName: selectedCustomer?.name,
-    }
+    try {
+      const selectedCustomer = customers.find((c) => c.id === selectedCustomerId)
 
-    const result = await addSale(sale)
-    if (result) {
-      toast({
-        title: "Venda realizada com sucesso!",
-        description: `Total: ${formatCurrency(sale.total)}`,
-        variant: "default",
-      })
-      setCart([])
-      setPaymentMethod("cash")
-      setSelectedCustomerId("")
-      await loadData()
-    } else {
-      toast({
-        title: "Erro ao realizar venda",
-        description: "Tente novamente mais tarde.",
-        variant: "destructive",
-      })
+      const sale: Omit<Sale, "id"> = {
+        date: new Date().toISOString(),
+        products: cart.map((item) => ({
+          productId: item.product.id,
+          productName: item.product.name,
+          quantity: item.quantity,
+          price: item.product.price,
+          discount: item.discount > 0 ? item.discount : undefined,
+          subtotal: calculateItemSubtotal(item),
+        })),
+        total: calculateTotal(),
+        paymentMethod: paymentMethod as any,
+        status: "completed",
+        customerId: selectedCustomerId || undefined,
+        customerName: selectedCustomer?.name,
+      }
+
+      const result = await addSale(sale)
+      if (result) {
+        toast({
+          title: "Venda realizada com sucesso!",
+          description: `Total: ${formatCurrency(sale.total)}`,
+          variant: "default",
+        })
+        setCart([])
+        setPaymentMethod("cash")
+        setSelectedCustomerId("")
+        await loadData()
+      } else {
+        toast({
+          title: "Erro ao realizar venda",
+          description: "Tente novamente mais tarde.",
+          variant: "destructive",
+        })
+      }
+    } finally {
+      setIsProcessingSale(false)
     }
   }
 
@@ -206,6 +223,11 @@ export default function VendasPage() {
   }
 
   const filteredProducts = products.filter((p) => p.name.toLowerCase().includes(searchProduct.toLowerCase()))
+
+  const updateDiscount = (productId: string, value: string) => {
+    const discount = value === "" ? 0 : Number(value)
+    setCart(cart.map((item) => (item.product.id === productId ? { ...item, discount: Math.max(0, discount) } : item)))
+  }
 
   if (isLoading) {
     return (
@@ -303,18 +325,48 @@ export default function VendasPage() {
                   <>
                     <div className="space-y-2 max-h-[300px] overflow-y-auto">
                       {cart.map((item) => (
-                        <div key={item.product.id} className="flex items-center justify-between p-3 border rounded-lg">
-                          <div className="flex-1 min-w-0 mr-2">
-                            <p className="font-medium text-sm truncate">{item.product.name}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {item.quantity}x {formatCurrency(item.product.price)}
-                            </p>
+                        <div key={item.product.id} className="flex flex-col p-3 border rounded-lg space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0 mr-2">
+                              <p className="font-medium text-sm truncate">{item.product.name}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {item.quantity}x {formatCurrency(item.product.price)}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <div className="text-right">
+                                {item.discount > 0 && (
+                                  <p className="text-xs text-muted-foreground line-through">
+                                    {formatCurrency(item.product.price * item.quantity)}
+                                  </p>
+                                )}
+                                <p className="font-bold text-sm">{formatCurrency(calculateItemSubtotal(item))}</p>
+                              </div>
+                              <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.product.id)}>
+                                <Trash2 className="h-4 w-4 text-destructive" />
+                              </Button>
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
-                            <p className="font-bold text-sm">{formatCurrency(item.product.price * item.quantity)}</p>
-                            <Button variant="ghost" size="sm" onClick={() => removeFromCart(item.product.id)}>
-                              <Trash2 className="h-4 w-4 text-destructive" />
-                            </Button>
+                            <Label htmlFor={`discount-${item.product.id}`} className="text-xs whitespace-nowrap">
+                              Desconto:
+                            </Label>
+                            <Input
+                              id={`discount-${item.product.id}`}
+                              type="number"
+                              min="0"
+                              max={item.product.price * item.quantity}
+                              step="0.01"
+                              value={item.discount === 0 ? "" : item.discount}
+                              onChange={(e) => updateDiscount(item.product.id, e.target.value)}
+                              className="h-8 text-sm"
+                              placeholder="R$ 0,00"
+                            />
+                            {item.discount > 0 && (
+                              <Badge variant="secondary" className="text-xs">
+                                -{formatCurrency(item.discount)}
+                              </Badge>
+                            )}
                           </div>
                         </div>
                       ))}
@@ -369,8 +421,13 @@ export default function VendasPage() {
                         <span className="text-2xl font-bold text-success">{formatCurrency(calculateTotal())}</span>
                       </div>
 
-                      <Button onClick={finalizeSale} className="w-full" size="lg">
-                        Finalizar Venda
+                      <Button
+                        onClick={finalizeSale}
+                        className="w-full"
+                        size="lg"
+                        disabled={isProcessingSale || cart.length === 0}
+                      >
+                        {isProcessingSale ? "Processando..." : "Finalizar Venda"}
                       </Button>
                     </div>
                   </>
@@ -491,14 +548,21 @@ export default function VendasPage() {
                           </AlertDialog>
                         </div>
                       </div>
-                      <div className="space-y-1 border-t pt-2">
-                        <p className="text-xs font-medium text-muted-foreground">Produtos:</p>
-                        {sale.products.map((item, idx) => (
-                          <div key={idx} className="flex justify-between text-xs text-muted-foreground">
-                            <span className="truncate flex-1 mr-2">
-                              {item.quantity}x {item.productName}
-                            </span>
-                            <span className="font-medium shrink-0">{formatCurrency(item.subtotal)}</span>
+                      <div className="mt-3 space-y-2">
+                        {sale.products.map((item, index) => (
+                          <div key={index} className="flex items-start justify-between text-sm border-l-2 pl-3">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-medium truncate">{item.productName}</p>
+                              <p className="text-xs text-muted-foreground">
+                                {item.quantity}x {formatCurrency(item.price)}
+                              </p>
+                              {item.discount && item.discount > 0 && (
+                                <Badge variant="secondary" className="text-xs mt-1">
+                                  Desconto: {formatCurrency(item.discount)}
+                                </Badge>
+                              )}
+                            </div>
+                            <p className="font-medium ml-2">{formatCurrency(item.subtotal)}</p>
                           </div>
                         ))}
                       </div>
