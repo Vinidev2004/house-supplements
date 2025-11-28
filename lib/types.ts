@@ -30,6 +30,7 @@ export interface SaleItem {
   productName: string
   quantity: number
   price: number
+  discount?: number
   subtotal: number
 }
 

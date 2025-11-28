@@ -33,6 +33,7 @@ export interface DbSaleItem {
   product_name: string
   quantity: number
   unit_price: number
+  discount: number | null
   subtotal: number
   created_at: string
 }
@@ -84,6 +85,7 @@ function dbSaleToSale(dbSale: DbSale & { customer_id?: string }, items: DbSaleIt
       productName: item.product_name,
       quantity: item.quantity,
       price: Number(item.unit_price),
+      discount: item.discount ? Number(item.discount) : undefined,
       subtotal: Number(item.subtotal),
     })),
     total: Number(dbSale.total),
@@ -172,7 +174,8 @@ export async function updateProduct(id: string, updates: Partial<Product>): Prom
   if (updates.cost !== undefined) dbUpdates.cost = updates.cost
   if (updates.stock !== undefined) dbUpdates.stock = updates.stock
   if (updates.minStock !== undefined) dbUpdates.min_stock = updates.minStock
-  if (updates.estimatedConsumptionDays !== undefined) dbUpdates.estimated_consumption_days = updates.estimatedConsumptionDays || null
+  if (updates.estimatedConsumptionDays !== undefined)
+    dbUpdates.estimated_consumption_days = updates.estimatedConsumptionDays || null
 
   dbUpdates.updated_at = new Date().toISOString()
 
@@ -261,13 +264,13 @@ export async function addSale(sale: Omit<Sale, "id">): Promise<Sale | null> {
 
     if (saleError) throw saleError
 
-    // Insert sale items
     const items = sale.products.map((item) => ({
       sale_id: saleData.id,
       product_id: item.productId,
       product_name: item.productName,
       quantity: item.quantity,
       unit_price: item.price,
+      discount: item.discount || 0,
       subtotal: item.subtotal,
     }))
 
