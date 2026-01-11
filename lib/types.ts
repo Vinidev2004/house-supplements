@@ -84,3 +84,43 @@ export type ExpenseCategory =
   | "Impostos"
   | "Manutenção"
   | "Outros"
+
+export interface ResaleStore {
+  id: string
+  name: string
+  cnpj?: string
+  contactName?: string
+  phone?: string
+  email?: string
+  address?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ResaleSale {
+  id: string
+  storeId: string
+  storeName?: string
+  saleDate: string
+  totalCost: number
+  totalSale: number
+  profit: number
+  notes?: string
+  items?: ResaleSaleItem[]
+  createdAt: string
+  updatedAt: string
+}
+
+export interface ResaleSaleItem {
+  id: string
+  resaleSaleId: string
+  productId: string
+  productName: string
+  quantity: number
+  unitCost: number
+  unitPrice: number
+  totalCost: number
+  totalSale: number
+  profit: number
+  createdAt: string
+}

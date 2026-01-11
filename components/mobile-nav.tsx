@@ -6,7 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, LayoutDashboard, Package, ShoppingCart, DollarSign, BarChart3, Users, LogOut } from "lucide-react"
+import { Menu, LayoutDashboard, Package, ShoppingCart, DollarSign, BarChart3, Users, LogOut, Store } from "lucide-react"
 import Image from "next/image"
 import { logout } from "@/lib/auth"
 
@@ -15,6 +15,7 @@ const navigation = [
   { name: "Estoque", href: "/estoque", icon: Package },
   { name: "Vendas", href: "/vendas", icon: ShoppingCart },
   { name: "Clientes", href: "/clientes", icon: Users },
+  { name: "Revendas", href: "/revendas", icon: Store },
   { name: "Financeiro", href: "/financeiro", icon: DollarSign },
   { name: "Relatórios", href: "/relatorios", icon: BarChart3 },
 ]
