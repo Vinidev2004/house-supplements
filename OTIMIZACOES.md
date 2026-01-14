@@ -11,7 +11,7 @@ Este documento detalha todas as otimizações de performance implementadas no si
 ### Problema: N+1 Queries
 
 **Antes**:
-```typescript
+\`\`\`typescript
 // Buscava vendas
 const sales = await supabase.from('sales').select('*')
 
@@ -21,10 +21,10 @@ for (const sale of sales) {
   const items = await supabase.from('sale_items').select('*').eq('sale_id', sale.id)
 }
 // Total: 1 + (N × 2) queries
-```
+\`\`\`
 
 **Depois**:
-```typescript
+\`\`\`typescript
 // Uma única query com joins
 const sales = await supabase
   .from('sales')
@@ -34,7 +34,7 @@ const sales = await supabase
     sale_items(*)
   `)
 // Total: 1 query
-```
+\`\`\`
 
 **Resultado**: Redução de **90%** no número de queries.
 
@@ -45,20 +45,20 @@ const sales = await supabase
 ### Atualização de Estoque
 
 **Antes** (sequencial):
-```typescript
+\`\`\`typescript
 for (const item of items) {
   await updateStock(item.productId, item.quantity)
 }
 // Tempo: N × tempo_query
-```
+\`\`\`
 
 **Depois** (paralelo):
-```typescript
+\`\`\`typescript
 await Promise.all(
   items.map(item => updateStock(item.productId, item.quantity))
 )
 // Tempo: tempo_query (todas ao mesmo tempo)
-```
+\`\`\`
 
 **Resultado**: Redução de **80%** no tempo de atualização de estoque.
 
@@ -69,23 +69,23 @@ await Promise.all(
 ### Busca de Produtos em Lote
 
 **Antes**:
-```typescript
+\`\`\`typescript
 for (const item of sale.products) {
   const product = await supabase
     .from('products')
     .select('stock')
     .eq('id', item.productId)
 }
-```
+\`\`\`
 
 **Depois**:
-```typescript
+\`\`\`typescript
 const productIds = sale.products.map(item => item.productId)
 const products = await supabase
   .from('products')
   .select('id, stock')
   .in('id', productIds)
-```
+\`\`\`
 
 **Resultado**: De N queries para 1 query única.
 
@@ -122,23 +122,23 @@ Script: `scripts/013_add_performance_indexes.sql`
 ### Validação de Estoque
 
 **Antes**:
-```typescript
+\`\`\`typescript
 // Inicia transação
 // Insere venda
 // Tenta atualizar estoque
 // ERRO: estoque insuficiente
 // Faz rollback de tudo
-```
+\`\`\`
 
 **Depois**:
-```typescript
+\`\`\`typescript
 // Valida estoque ANTES
 const products = await checkStock(items)
 if (hasInsufficientStock) {
   return error // Sem transação
 }
 // Só então inicia transação
-```
+\`\`\`
 
 **Resultado**: Evita transações desnecessárias e melhora feedback ao usuário.
 
@@ -149,7 +149,7 @@ if (hasInsufficientStock) {
 ### Finalização de Venda
 
 **Implementação**:
-```typescript
+\`\`\`typescript
 const [isProcessing, setIsProcessing] = useState(false)
 
 const finalizeSale = async () => {
@@ -166,7 +166,7 @@ const finalizeSale = async () => {
 <Button disabled={isProcessing}>
   {isProcessing ? 'Processando...' : 'Finalizar Venda'}
 </Button>
-```
+\`\`\`
 
 **Resultado**: Elimina vendas duplicadas por duplo clique.
 
@@ -177,19 +177,19 @@ const finalizeSale = async () => {
 ### Uso Inteligente de useState
 
 **Antes**:
-```typescript
+\`\`\`typescript
 // Re-renderiza tudo a cada mudança
 const [sales, setSales] = useState([])
 const [customers, setCustomers] = useState([])
 const [products, setProducts] = useState([])
-```
+\`\`\`
 
 **Depois**:
-```typescript
+\`\`\`typescript
 // Carrega dados relacionados juntos
 const [salesWithDetails, setSalesWithDetails] = useState([])
 // Menos re-renders, dados já unidos
-```
+\`\`\`
 
 ---
 
@@ -198,7 +198,7 @@ const [salesWithDetails, setSalesWithDetails] = useState([])
 ### Dashboard
 
 **Implementação**:
-```typescript
+\`\`\`typescript
 const [stats, setStats] = useState(null)
 const [isLoading, setIsLoading] = useState(true)
 
@@ -208,7 +208,7 @@ useEffect(() => {
 
 // Atualiza apenas quando necessário
 const refreshStats = () => loadStats()
-```
+\`\`\`
 
 **Resultado**: Dashboard carrega uma vez, atualiza apenas quando necessário.
 

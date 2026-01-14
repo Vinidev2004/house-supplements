@@ -126,3 +126,22 @@ export interface ResaleSaleItem {
   profit: number
   createdAt: string
 }
+
+export type UserRole = "admin" | "funcionario"
+
+export interface User {
+  id: string
+  username: string
+  name: string
+  role: UserRole
+  active: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AuthSession {
+  userId: string
+  username: string
+  name: string
+  role: UserRole
+}

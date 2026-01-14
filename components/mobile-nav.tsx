@@ -6,9 +6,22 @@ import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import { Menu, LayoutDashboard, Package, ShoppingCart, DollarSign, BarChart3, Users, LogOut, Store } from "lucide-react"
+import {
+  Menu,
+  LayoutDashboard,
+  Package,
+  ShoppingCart,
+  DollarSign,
+  BarChart3,
+  Users,
+  LogOut,
+  Store,
+  User,
+} from "lucide-react"
 import Image from "next/image"
 import { logout } from "@/lib/auth"
+import { useUser } from "@/lib/user-context"
+import { Badge } from "@/components/ui/badge"
 
 const navigation = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
@@ -25,6 +38,7 @@ export function MobileNav() {
   const pathname = usePathname()
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
+  const { user, isAdmin } = useUser()
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -75,7 +89,20 @@ export function MobileNav() {
               )
             })}
           </nav>
-          <div className="border-t p-4 space-y-2">
+          <div className="border-t p-4 space-y-3">
+            {user && (
+              <div className="flex items-center gap-3 px-2 py-2 rounded-lg bg-accent/50">
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                  <User className="h-4 w-4 text-primary" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{user.name}</p>
+                  <Badge variant={isAdmin ? "default" : "secondary"} className="text-xs">
+                    {isAdmin ? "Admin" : "Funcionário"}
+                  </Badge>
+                </div>
+              </div>
+            )}
             <Button
               variant="ghost"
               className="w-full justify-start text-muted-foreground hover:text-accent-foreground"

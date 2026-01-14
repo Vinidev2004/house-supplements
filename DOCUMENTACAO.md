@@ -333,7 +333,7 @@ Análises completas com 4 abas:
 ### Queries Otimizadas
 
 **Problema N+1 Eliminado**:
-```typescript
+\`\`\`typescript
 // ✅ Query otimizada com join
 const sales = await supabase
   .from('sales')
@@ -342,27 +342,27 @@ const sales = await supabase
     customers(name),
     sale_items(*)
   `)
-```
+\`\`\`
 
 ### Operações em Paralelo
 
-```typescript
+\`\`\`typescript
 // ✅ Atualização de estoque em paralelo
 await Promise.all(
   items.map(item => updateStock(item.productId, item.quantity))
 )
-```
+\`\`\`
 
 ### Batch Operations
 
-```typescript
+\`\`\`typescript
 // ✅ Busca em lote ao invés de individual
 const productIds = items.map(item => item.productId)
 const products = await supabase
   .from('products')
   .select('id, stock')
   .in('id', productIds)
-```
+\`\`\`
 
 ### Índices de Banco de Dados
 
@@ -375,7 +375,7 @@ Script `013_add_performance_indexes.sql` cria 13 índices otimizados:
 
 ## Estrutura de Arquivos
 
-```
+\`\`\`
 house-supplements/
 ├── app/
 │   ├── page.tsx                    # Dashboard principal
@@ -441,7 +441,7 @@ house-supplements/
 ├── MELHORIAS.md                   # Melhorias futuras
 ├── README.md                      # Documentação principal
 └── package.json                   # Dependências
-```
+\`\`\`
 
 ## Configuração do Projeto
 
@@ -455,25 +455,25 @@ house-supplements/
 
 Configuradas automaticamente via integração Supabase no v0:
 
-```env
+\`\`\`env
 NEXT_PUBLIC_SUPABASE_URL=sua_url_supabase
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua_chave_anonima
 SUPABASE_SERVICE_ROLE_KEY=sua_chave_service_role
 # ... outras variáveis automáticas
-```
+\`\`\`
 
 ### Instalação
 
 1. **Clone o repositório**
-```bash
+\`\`\`bash
 git clone https://github.com/seu-usuario/house-supplements.git
 cd house-supplements
-```
+\`\`\`
 
 2. **Instale as dependências**
-```bash
+\`\`\`bash
 npm install
-```
+\`\`\`
 
 3. **Configure a integração Supabase** no v0 (ou configure as variáveis manualmente)
 
@@ -482,14 +482,14 @@ npm install
    - Execute cada script de `001` até `013`
 
 5. **Inicie o servidor**
-```bash
+\`\`\`bash
 npm run dev
-```
+\`\`\`
 
 6. **Acesse o sistema**
-```
+\`\`\`
 http://localhost:3000
-```
+\`\`\`
 
 ## Scripts SQL
 
@@ -508,12 +508,12 @@ http://localhost:3000
 
 O sistema utiliza políticas RLS públicas para acesso sem autenticação:
 
-```sql
+\`\`\`sql
 create policy "Enable all operations for [table]"
   on public.[table] for all
   using (true)
   with check (true);
-```
+\`\`\`
 
 **Para Produção**: Implementar autenticação Supabase e políticas baseadas em `auth.uid()`.
 
@@ -556,7 +556,7 @@ create policy "Enable all operations for [table]"
 ## Fluxo de Dados
 
 ### Adicionar Venda (Varejo)
-```
+\`\`\`
 Usuário → Carrinho → Finalizar →
   1. Valida estoque
   2. Cria venda (sales)
@@ -564,10 +564,10 @@ Usuário → Carrinho → Finalizar →
   4. Atualiza estoque (products) em paralelo
   5. Cria transação (transactions)
 → Toast sucesso → Limpa carrinho → Atualiza UI
-```
+\`\`\`
 
 ### Adicionar Venda B2B
-```
+\`\`\`
 Usuário → Carrinho B2B → Finalizar →
   1. Valida estoque
   2. Cria venda B2B (resale_sales)
@@ -575,10 +575,10 @@ Usuário → Carrinho B2B → Finalizar →
   4. Atualiza estoque (products) em paralelo
   5. Cria transação com date da venda
 → Toast sucesso → Limpa carrinho → Atualiza UI → Fecha dialog
-```
+\`\`\`
 
 ### Cancelar Venda
-```
+\`\`\`
 Usuário → Click cancelar → AlertDialog confirmação →
   1. Busca items da venda
   2. Restaura estoque em paralelo
@@ -586,7 +586,7 @@ Usuário → Click cancelar → AlertDialog confirmação →
   4. Remove items
   5. Remove venda
 → Toast sucesso → Atualiza UI
-```
+\`\`\`
 
 ## Manutenção
 

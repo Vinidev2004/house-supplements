@@ -11,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import Image from "next/image"
 import { login } from "@/lib/auth"
 import { useToast } from "@/hooks/use-toast"
+import { useUser } from "@/lib/user-context"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -18,6 +19,7 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const router = useRouter()
   const { toast } = useToast()
+  const { refreshUser } = useUser()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -27,9 +29,10 @@ export default function LoginPage() {
       const result = await login(username, password)
 
       if (result.success) {
+        await refreshUser()
         toast({
           title: "Login realizado com sucesso!",
-          description: "Redirecionando...",
+          description: `Bem-vindo, ${result.user?.name || username}!`,
         })
         router.replace("/")
       } else {
@@ -59,7 +62,7 @@ export default function LoginPage() {
           </div>
           <div>
             <CardTitle className="text-2xl font-bold">House Supplements</CardTitle>
-            <CardDescription>{""}</CardDescription>
+            <CardDescription>Sistema de Gestão</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
