@@ -28,13 +28,18 @@ export default function LoginPage() {
     try {
       const result = await login(username, password)
 
-      if (result.success) {
+      if (result.success && result.user) {
         await refreshUser()
         toast({
           title: "Login realizado com sucesso!",
-          description: `Bem-vindo, ${result.user?.name || username}!`,
+          description: `Bem-vindo, ${result.user.name || username}!`,
         })
-        router.replace("/")
+
+        if (result.user.role === "funcionario") {
+          router.replace("/funcionario")
+        } else {
+          router.replace("/")
+        }
       } else {
         toast({
           title: "Erro ao fazer login",

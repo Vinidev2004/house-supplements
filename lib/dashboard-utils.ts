@@ -101,3 +101,5 @@ export const getCategoryDistribution = async () => {
     value,
   }))
 }
+
+export const getDashboardStats = calculateDashboardStats

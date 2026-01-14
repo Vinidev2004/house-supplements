@@ -1,7 +1,7 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-/* Removed @import "tw-animate-css" which generates incompatible :dir(rtl) CSS */
-/* Removed @custom-variant dark and @layer base which cause parsing errors */
+@custom-variant dark (&:is(.dark *));
 
 :root {
   --background: 0 0% 100%;
@@ -75,6 +75,7 @@
 }
 
 @theme inline {
+  /* optional: --font-sans, --font-serif, --font-mono if they are applied in the layout.tsx */
   --color-background: hsl(var(--background));
   --color-foreground: hsl(var(--foreground));
   --color-card: hsl(var(--card));
@@ -113,7 +114,15 @@
   --color-sidebar-ring: var(--sidebar-ring);
 }
 
-/* Using direct CSS instead of @apply to avoid parsing errors */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
 * {
   border-color: hsl(var(--border));
 }

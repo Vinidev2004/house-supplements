@@ -17,20 +17,23 @@ import {
   LogOut,
   Store,
   User,
+  Settings,
 } from "lucide-react"
 import Image from "next/image"
 import { logout } from "@/lib/auth"
 import { useUser } from "@/lib/user-context"
 import { Badge } from "@/components/ui/badge"
 
-const navigation = [
-  { name: "Dashboard", href: "/", icon: LayoutDashboard },
+const allNavigation = [
+  { name: "Dashboard", href: "/", icon: LayoutDashboard, adminOnly: true },
+  { name: "Painel", href: "/funcionario", icon: LayoutDashboard, funcionarioOnly: true },
   { name: "Estoque", href: "/estoque", icon: Package },
   { name: "Vendas", href: "/vendas", icon: ShoppingCart },
   { name: "Clientes", href: "/clientes", icon: Users },
-  { name: "Revendas", href: "/revendas", icon: Store },
-  { name: "Financeiro", href: "/financeiro", icon: DollarSign },
-  { name: "Relatórios", href: "/relatorios", icon: BarChart3 },
+  { name: "Revendas", href: "/revendas", icon: Store, adminOnly: true },
+  { name: "Financeiro", href: "/financeiro", icon: DollarSign, adminOnly: true },
+  { name: "Relatórios", href: "/relatorios", icon: BarChart3, adminOnly: true },
+  { name: "Configurações", href: "/configuracoes", icon: Settings, adminOnly: true },
 ]
 
 export function MobileNav() {
@@ -39,6 +42,12 @@ export function MobileNav() {
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
   const { user, isAdmin } = useUser()
+
+  const navigation = allNavigation.filter((item) => {
+    if (item.adminOnly && !isAdmin) return false
+    if (item.funcionarioOnly && isAdmin) return false
+    return true
+  })
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
