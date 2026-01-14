@@ -33,7 +33,7 @@ export default async function RootLayout({
   const authenticated = await isAuthenticated()
 
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className="dark">
       <head>
         {/* Para garantir compatibilidade máxima */}
         <link rel="icon" type="image/png" href="/favicon.png/favicon-96x96.png" sizes="96x96" />
