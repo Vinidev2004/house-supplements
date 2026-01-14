@@ -42,6 +42,10 @@ export default function EstoquePage() {
     loadCurrentUser()
   }, [])
 
+  useEffect(() => {
+    filterProducts()
+  }, [searchTerm, categoryFilter, products])
+
   const loadProducts = async () => {
     setIsLoading(true)
     const data = await getProducts()
