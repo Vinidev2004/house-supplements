@@ -198,7 +198,7 @@ export default function RevendasPage() {
     const sale = await addResaleSale({
       storeId: newSale.storeId,
       storeName,
-      saleDate: newSale.saleDate,
+      saleDate: new Date().toISOString(), // Use current date/time
       notes: newSale.notes,
       totalCost: calculateResaleCost(),
       totalSale: calculateResaleTotal(),
@@ -211,6 +211,7 @@ export default function RevendasPage() {
       setNewSale({ storeId: "", saleDate: new Date().toISOString().split("T")[0], notes: "" })
       setResaleCart([])
       setSaleDialogOpen(false)
+      await loadData() // Reload data to show updated date
       toast.success("Venda B2B registrada com sucesso!")
     } else {
       toast.error("Erro ao registrar venda")
