@@ -195,10 +195,13 @@ export default function RevendasPage() {
 
     const storeName = stores.find((s) => s.id === newSale.storeId)?.name
 
+    const localDate = new Date()
+    localDate.setMinutes(localDate.getMinutes() - localDate.getTimezoneOffset())
+
     const sale = await addResaleSale({
       storeId: newSale.storeId,
       storeName,
-      saleDate: new Date().toISOString(), // Use current date/time
+      saleDate: localDate.toISOString(),
       notes: newSale.notes,
       totalCost: calculateResaleCost(),
       totalSale: calculateResaleTotal(),
@@ -207,11 +210,10 @@ export default function RevendasPage() {
     })
 
     if (sale) {
-      setSales([sale, ...sales])
+      await loadData()
       setNewSale({ storeId: "", saleDate: new Date().toISOString().split("T")[0], notes: "" })
       setResaleCart([])
       setSaleDialogOpen(false)
-      await loadData() // Reload data to show updated date
       toast.success("Venda B2B registrada com sucesso!")
     } else {
       toast.error("Erro ao registrar venda")
@@ -700,82 +702,87 @@ export default function RevendasPage() {
                               </div>
                             ) : (
                               <div className="space-y-3">
-                                {storeSales.map((sale) => (
-                                  <Card key={sale.id} className="bg-muted/20">
-                                    <CardHeader className="pb-3">
-                                      <div className="flex items-start justify-between">
-                                        <div>
-                                          <CardTitle className="text-base">
-                                            {new Date(sale.saleDate).toLocaleDateString("pt-BR")}
-                                          </CardTitle>
-                                          {sale.notes && (
-                                            <CardDescription className="text-xs mt-1">{sale.notes}</CardDescription>
-                                          )}
-                                        </div>
-                                        <Button
-                                          variant="ghost"
-                                          size="icon"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleDeleteSale(sale.id)
-                                          }}
-                                        >
-                                          <Trash2 className="h-4 w-4" />
-                                        </Button>
-                                      </div>
-                                    </CardHeader>
-                                    <CardContent className="space-y-3">
-                                      {/* Sale Items */}
-                                      {sale.items && sale.items.length > 0 && (
-                                        <div className="space-y-2">
-                                          {sale.items.map((item) => (
-                                            <div
-                                              key={item.id}
-                                              className="bg-background rounded-lg p-3 space-y-1 text-sm"
-                                            >
-                                              <div className="flex items-center justify-between">
-                                                <span className="font-medium">{item.productName}</span>
-                                                <Badge variant="outline">{item.quantity}x</Badge>
-                                              </div>
-                                              <div className="grid grid-cols-3 gap-2 text-xs">
-                                                <div>
-                                                  <span className="text-muted-foreground">Custo:</span>{" "}
-                                                  {formatCurrency(item.totalCost)}
-                                                </div>
-                                                <div>
-                                                  <span className="text-muted-foreground">Venda:</span>{" "}
-                                                  {formatCurrency(item.totalSale)}
-                                                </div>
-                                                <div>
-                                                  <span className="text-muted-foreground">Lucro:</span>{" "}
-                                                  <span className="text-green-600 font-semibold">
-                                                    {formatCurrency(item.profit)}
-                                                  </span>
-                                                </div>
-                                              </div>
-                                            </div>
-                                          ))}
-                                        </div>
-                                      )}
+                                {storeSales.map((sale) => {
+                                  const saleDate = new Date(sale.saleDate)
+                                  const displayDate = saleDate.toLocaleDateString("pt-BR")
 
-                                      {/* Sale Totals */}
-                                      <div className="border-t border-border pt-3 grid grid-cols-3 gap-2 text-sm">
-                                        <div>
-                                          <p className="text-muted-foreground text-xs">Custo Total</p>
-                                          <p className="font-semibold">{formatCurrency(sale.totalCost)}</p>
+                                  return (
+                                    <Card key={sale.id} className="border-l-4 border-l-blue-500">
+                                      <CardHeader className="pb-3">
+                                        <div className="flex items-start justify-between">
+                                          <div>
+                                            <CardTitle className="text-base">{displayDate}</CardTitle>
+                                            {sale.notes && (
+                                              <CardDescription className="text-xs mt-1">{sale.notes}</CardDescription>
+                                            )}
+                                          </div>
+                                          <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleDeleteSale(sale.id)
+                                            }}
+                                          >
+                                            <Trash2 className="h-4 w-4" />
+                                          </Button>
                                         </div>
-                                        <div>
-                                          <p className="text-muted-foreground text-xs">Valor Total</p>
-                                          <p className="font-semibold">{formatCurrency(sale.totalSale)}</p>
+                                      </CardHeader>
+                                      <CardContent className="space-y-3">
+                                        {/* Sale Items */}
+                                        {sale.items && sale.items.length > 0 && (
+                                          <div className="space-y-2">
+                                            {sale.items.map((item) => (
+                                              <div
+                                                key={item.id}
+                                                className="bg-background rounded-lg p-3 space-y-1 text-sm"
+                                              >
+                                                <div className="flex items-center justify-between">
+                                                  <span className="font-medium">{item.productName}</span>
+                                                  <Badge variant="outline">{item.quantity}x</Badge>
+                                                </div>
+                                                <div className="grid grid-cols-3 gap-2 text-xs">
+                                                  <div>
+                                                    <span className="text-muted-foreground">Custo:</span>{" "}
+                                                    {formatCurrency(item.totalCost)}
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-muted-foreground">Venda:</span>{" "}
+                                                    {formatCurrency(item.totalSale)}
+                                                  </div>
+                                                  <div>
+                                                    <span className="text-muted-foreground">Lucro:</span>{" "}
+                                                    <span className="text-green-600 font-semibold">
+                                                      {formatCurrency(item.profit)}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        )}
+
+                                        {/* Sale Totals */}
+                                        <div className="border-t border-border pt-3 grid grid-cols-3 gap-2 text-sm">
+                                          <div>
+                                            <p className="text-muted-foreground text-xs">Custo Total</p>
+                                            <p className="font-semibold">{formatCurrency(sale.totalCost)}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-muted-foreground text-xs">Valor Total</p>
+                                            <p className="font-semibold">{formatCurrency(sale.totalSale)}</p>
+                                          </div>
+                                          <div>
+                                            <p className="text-muted-foreground text-xs">Lucro</p>
+                                            <p className="font-semibold text-green-600">
+                                              {formatCurrency(sale.profit)}
+                                            </p>
+                                          </div>
                                         </div>
-                                        <div>
-                                          <p className="text-muted-foreground text-xs">Lucro</p>
-                                          <p className="font-semibold text-green-600">{formatCurrency(sale.profit)}</p>
-                                        </div>
-                                      </div>
-                                    </CardContent>
-                                  </Card>
-                                ))}
+                                      </CardContent>
+                                    </Card>
+                                  )
+                                })}
                               </div>
                             )}
                           </div>
