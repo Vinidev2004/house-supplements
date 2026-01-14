@@ -111,13 +111,21 @@ export default function RevendasPage() {
     const product = products.find((p) => p.id === selectedProductId)
     if (!product) return
 
+    if (product.quantity < productQuantity) {
+      toast.error(`Estoque insuficiente! Disponível: ${product.quantity} unidades`)
+      return
+    }
+
     const existingItem = resaleCart.find((item) => item.product.id === selectedProductId)
 
     if (existingItem) {
+      const newQuantity = existingItem.quantity + productQuantity
+      if (product.quantity < newQuantity) {
+        toast.error(`Estoque insuficiente! Disponível: ${product.quantity} unidades`)
+        return
+      }
       setResaleCart(
-        resaleCart.map((item) =>
-          item.product.id === selectedProductId ? { ...item, quantity: item.quantity + productQuantity } : item,
-        ),
+        resaleCart.map((item) => (item.product.id === selectedProductId ? { ...item, quantity: newQuantity } : item)),
       )
     } else {
       setResaleCart([...resaleCart, { product, quantity: productQuantity, discount: 0 }])
@@ -126,6 +134,7 @@ export default function RevendasPage() {
     setSelectedProductId("")
     setProductQuantity(1)
     setSearchProduct("")
+    toast.success("Produto adicionado ao carrinho!")
   }
 
   const removeFromResaleCart = (productId: string) => {
