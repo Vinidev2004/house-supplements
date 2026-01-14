@@ -59,42 +59,16 @@ export default function SalesPage() {
   const { toast } = useToast()
 
   useEffect(() => {
-    loadCurrentUser()
+    loadData()
   }, [])
-
-  const loadCurrentUser = async () => {
-    try {
-      const response = await fetch("/api/auth/me")
-      if (response.ok) {
-        const data = await response.json()
-        setCurrentUser(data.user)
-      }
-    } catch (error) {
-      console.error("Error loading current user:", error)
-    } finally {
-      loadData()
-    }
-  }
-
-  useEffect(() => {
-    filterSales()
-  }, [selectedDate, sales])
 
   const loadData = async () => {
     setIsLoading(true)
 
-    let userData: CurrentUser | null = null
-    try {
-      const response = await fetch("/api/auth/me")
-      if (response.ok) {
-        const data = await response.json()
-        userData = data.user
-        setCurrentUser(userData)
-        console.log("[v0] Current user loaded:", userData) // Debug log to check user data
-      }
-    } catch (error) {
-      console.error("Error fetching user:", error)
-    }
+    const response = await fetch("/api/auth/me")
+    const userData = response.ok ? (await response.json()).user : null
+    setCurrentUser(userData)
+    console.log("[v0] Current user loaded:", userData) // Debug log to check user data
 
     const userId = userData?.role === "funcionario" ? userData.id : undefined
     console.log("[v0] Fetching sales with userId:", userId, "for role:", userData?.role) // Debug log
