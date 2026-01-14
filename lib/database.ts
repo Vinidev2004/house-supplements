@@ -748,9 +748,7 @@ export async function addResaleSale(
 
     await Promise.all(stockUpdates)
 
-    // Fetch complete sale data
-    const { data: itemsData } = await supabase.from("resale_sale_items").select("*").eq("resale_sale_id", saleData.id)
-
+    // Add transaction
     await supabase.from("transactions").insert({
       type: DB_TRANSACTION_TYPES.INCOME,
       category: "Revendas",
@@ -758,7 +756,11 @@ export async function addResaleSale(
       amount: totalSale,
       sale_id: saleData.id,
       paid: true,
+      date: sale.saleDate, // Use the sale date instead of auto created_at
     })
+
+    // Fetch complete sale data
+    const { data: itemsData } = await supabase.from("resale_sale_items").select("*").eq("resale_sale_id", saleData.id)
 
     return dbResaleSaleToResaleSale(saleData, sale.storeName, itemsData || [])
   } catch (error) {
