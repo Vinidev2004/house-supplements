@@ -24,6 +24,12 @@ import {
 import type { ResaleStore, ResaleSale, ResaleSaleItem, Product } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
 
+interface ResaleCartItem {
+  product: Product
+  quantity: number
+  discount: number
+}
+
 export default function RevendasPage() {
   const [stores, setStores] = useState<ResaleStore[]>([])
   const [sales, setSales] = useState<ResaleSale[]>([])
@@ -48,15 +54,10 @@ export default function RevendasPage() {
     notes: "",
   })
 
-  const [saleItems, setSaleItems] = useState<
-    Array<{
-      productId: string
-      productName: string
-      quantity: number
-      unitCost: number
-      unitPrice: number
-    }>
-  >([])
+  const [resaleCart, setResaleCart] = useState<ResaleCartItem[]>([])
+  const [selectedProductId, setSelectedProductId] = useState<string>("")
+  const [productQuantity, setProductQuantity] = useState<number>(1)
+  const [searchProduct, setSearchProduct] = useState<string>("")
 
   useEffect(() => {
     loadData()
@@ -104,29 +105,57 @@ export default function RevendasPage() {
     }
   }
 
-  function addSaleItem() {
-    setSaleItems([...saleItems, { productId: "", productName: "", quantity: 1, unitCost: 0, unitPrice: 0 }])
-  }
+  const addToResaleCart = () => {
+    if (!selectedProductId || productQuantity <= 0) return
 
-  function removeSaleItem(index: number) {
-    setSaleItems(saleItems.filter((_, i) => i !== index))
-  }
+    const product = products.find((p) => p.id === selectedProductId)
+    if (!product) return
 
-  function updateSaleItem(index: number, field: string, value: any) {
-    const updated = [...saleItems]
-    if (field === "productId") {
-      const product = products.find((p) => p.id === value)
-      if (product) {
-        updated[index].productId = value
-        updated[index].productName = product.name
-        updated[index].unitCost = product.cost
-        updated[index].unitPrice = product.price
-      }
+    const existingItem = resaleCart.find((item) => item.product.id === selectedProductId)
+
+    if (existingItem) {
+      setResaleCart(
+        resaleCart.map((item) =>
+          item.product.id === selectedProductId ? { ...item, quantity: item.quantity + productQuantity } : item,
+        ),
+      )
     } else {
-      updated[index] = { ...updated[index], [field]: value }
+      setResaleCart([...resaleCart, { product, quantity: productQuantity, discount: 0 }])
     }
-    setSaleItems(updated)
+
+    setSelectedProductId("")
+    setProductQuantity(1)
+    setSearchProduct("")
   }
+
+  const removeFromResaleCart = (productId: string) => {
+    setResaleCart(resaleCart.filter((item) => item.product.id !== productId))
+  }
+
+  const updateResaleDiscount = (productId: string, value: string) => {
+    const discount = value === "" ? 0 : Number(value)
+    setResaleCart(
+      resaleCart.map((item) => (item.product.id === productId ? { ...item, discount: Math.max(0, discount) } : item)),
+    )
+  }
+
+  const calculateResaleItemSubtotal = (item: ResaleCartItem) => {
+    return item.product.price * item.quantity - item.discount
+  }
+
+  const calculateResaleTotal = () => {
+    return resaleCart.reduce((sum, item) => sum + calculateResaleItemSubtotal(item), 0)
+  }
+
+  const calculateResaleCost = () => {
+    return resaleCart.reduce((sum, item) => sum + item.product.cost * item.quantity, 0)
+  }
+
+  const calculateResaleProfit = () => {
+    return calculateResaleTotal() - calculateResaleCost()
+  }
+
+  const filteredProducts = products.filter((p) => p.name.toLowerCase().includes(searchProduct.toLowerCase()))
 
   async function handleAddSale() {
     if (!newSale.storeId) {
@@ -134,22 +163,23 @@ export default function RevendasPage() {
       return
     }
 
-    if (saleItems.length === 0) {
-      toast.error("Adicione pelo menos um produto")
+    if (resaleCart.length === 0) {
+      toast.error("Adicione pelo menos um produto ao carrinho")
       return
     }
 
-    const items: ResaleSaleItem[] = saleItems.map((item) => ({
+    const items: ResaleSaleItem[] = resaleCart.map((item) => ({
       id: "",
       resaleSaleId: "",
-      productId: item.productId,
-      productName: item.productName,
+      productId: item.product.id,
+      productName: item.product.name,
       quantity: item.quantity,
-      unitCost: item.unitCost,
-      unitPrice: item.unitPrice,
-      totalCost: item.quantity * item.unitCost,
-      totalSale: item.quantity * item.unitPrice,
-      profit: item.quantity * (item.unitPrice - item.unitCost),
+      unitCost: item.product.cost,
+      unitPrice: item.product.price,
+      discount: item.discount,
+      totalCost: item.quantity * item.product.cost,
+      totalSale: calculateResaleItemSubtotal(item),
+      profit: calculateResaleItemSubtotal(item) - item.quantity * item.product.cost,
       createdAt: "",
     }))
 
@@ -160,18 +190,18 @@ export default function RevendasPage() {
       storeName,
       saleDate: newSale.saleDate,
       notes: newSale.notes,
-      totalCost: 0,
-      totalSale: 0,
-      profit: 0,
+      totalCost: calculateResaleCost(),
+      totalSale: calculateResaleTotal(),
+      profit: calculateResaleProfit(),
       items,
     })
 
     if (sale) {
       setSales([sale, ...sales])
       setNewSale({ storeId: "", saleDate: new Date().toISOString().split("T")[0], notes: "" })
-      setSaleItems([])
+      setResaleCart([])
       setSaleDialogOpen(false)
-      toast.success("Venda registrada com sucesso!")
+      toast.success("Venda B2B registrada com sucesso!")
     } else {
       toast.error("Erro ao registrar venda")
     }
@@ -358,7 +388,7 @@ export default function RevendasPage() {
                     Nova Venda
                   </Button>
                 </DialogTrigger>
-                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
                   <DialogHeader>
                     <DialogTitle>Registrar Venda B2B</DialogTitle>
                   </DialogHeader>
@@ -393,69 +423,150 @@ export default function RevendasPage() {
                       </div>
                     </div>
 
-                    <div>
-                      <div className="flex items-center justify-between mb-2">
-                        <Label>Produtos</Label>
-                        <Button variant="outline" size="sm" onClick={addSaleItem}>
-                          <Plus className="mr-2 h-4 w-4" />
-                          Adicionar Produto
-                        </Button>
-                      </div>
-                      {saleItems.map((item, index) => (
-                        <div key={index} className="grid gap-2 md:grid-cols-6 mb-2 items-end">
-                          <div className="md:col-span-2">
-                            <Select
-                              value={item.productId}
-                              onValueChange={(value) => updateSaleItem(index, "productId", value)}
-                            >
-                              <SelectTrigger>
-                                <SelectValue placeholder="Produto" />
+                    <div className="grid gap-4 lg:grid-cols-2">
+                      {/* Add Products Card */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Adicionar Produtos</CardTitle>
+                          <CardDescription className="text-xs">Selecione os produtos para venda B2B</CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="search-resale-product">Buscar Produto</Label>
+                            <Input
+                              id="search-resale-product"
+                              placeholder="Digite o nome do produto..."
+                              value={searchProduct}
+                              onChange={(e) => setSearchProduct(e.target.value)}
+                            />
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="resale-product">Produto</Label>
+                            <Select value={selectedProductId} onValueChange={setSelectedProductId}>
+                              <SelectTrigger id="resale-product">
+                                <SelectValue placeholder="Selecione um produto" />
                               </SelectTrigger>
                               <SelectContent>
-                                {products.map((product) => (
+                                {filteredProducts.map((product) => (
                                   <SelectItem key={product.id} value={product.id}>
-                                    {product.name}
+                                    {product.name} - {formatCurrency(product.price)}
                                   </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
                           </div>
-                          <div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="resale-quantity">Quantidade</Label>
                             <Input
+                              id="resale-quantity"
                               type="number"
-                              placeholder="Qtd"
-                              value={item.quantity}
-                              onChange={(e) => updateSaleItem(index, "quantity", Number.parseInt(e.target.value) || 0)}
                               min="1"
+                              value={productQuantity}
+                              onChange={(e) => setProductQuantity(Number(e.target.value))}
                             />
                           </div>
-                          <div>
-                            <Input
-                              type="number"
-                              placeholder="Custo"
-                              value={item.unitCost}
-                              onChange={(e) =>
-                                updateSaleItem(index, "unitCost", Number.parseFloat(e.target.value) || 0)
-                              }
-                              step="0.01"
-                            />
-                          </div>
-                          <div>
-                            <Input
-                              type="number"
-                              placeholder="Preço"
-                              value={item.unitPrice}
-                              onChange={(e) =>
-                                updateSaleItem(index, "unitPrice", Number.parseFloat(e.target.value) || 0)
-                              }
-                              step="0.01"
-                            />
-                          </div>
-                          <Button variant="ghost" size="icon" onClick={() => removeSaleItem(index)}>
-                            <Trash2 className="h-4 w-4" />
+
+                          <Button onClick={addToResaleCart} className="w-full" disabled={!selectedProductId}>
+                            <Plus className="mr-2 h-4 w-4" />
+                            Adicionar ao Carrinho
                           </Button>
-                        </div>
-                      ))}
+                        </CardContent>
+                      </Card>
+
+                      {/* Cart Card */}
+                      <Card>
+                        <CardHeader>
+                          <CardTitle className="text-base">Carrinho</CardTitle>
+                          <CardDescription className="text-xs">
+                            {resaleCart.length} {resaleCart.length === 1 ? "item" : "itens"}
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          {resaleCart.length === 0 ? (
+                            <p className="text-center text-sm text-muted-foreground py-8">Carrinho vazio</p>
+                          ) : (
+                            <>
+                              <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                                {resaleCart.map((item) => (
+                                  <div key={item.product.id} className="flex flex-col p-3 border rounded-lg space-y-2">
+                                    <div className="flex items-center justify-between">
+                                      <div className="flex-1 min-w-0 mr-2">
+                                        <p className="font-medium text-sm truncate">{item.product.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                          {item.quantity}x {formatCurrency(item.product.price)} (Custo:{" "}
+                                          {formatCurrency(item.product.cost)})
+                                        </p>
+                                      </div>
+                                      <div className="flex items-center gap-2">
+                                        <div className="text-right">
+                                          {item.discount > 0 && (
+                                            <p className="text-xs text-muted-foreground line-through">
+                                              {formatCurrency(item.product.price * item.quantity)}
+                                            </p>
+                                          )}
+                                          <p className="font-bold text-sm">
+                                            {formatCurrency(calculateResaleItemSubtotal(item))}
+                                          </p>
+                                        </div>
+                                        <Button
+                                          variant="ghost"
+                                          size="sm"
+                                          onClick={() => removeFromResaleCart(item.product.id)}
+                                        >
+                                          <Trash2 className="h-4 w-4 text-destructive" />
+                                        </Button>
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <Label
+                                        htmlFor={`resale-discount-${item.product.id}`}
+                                        className="text-xs whitespace-nowrap"
+                                      >
+                                        Desconto:
+                                      </Label>
+                                      <Input
+                                        id={`resale-discount-${item.product.id}`}
+                                        type="number"
+                                        min="0"
+                                        max={item.product.price * item.quantity}
+                                        step="0.01"
+                                        value={item.discount === 0 ? "" : item.discount}
+                                        onChange={(e) => updateResaleDiscount(item.product.id, e.target.value)}
+                                        className="h-8 text-sm"
+                                        placeholder="R$ 0,00"
+                                      />
+                                      {item.discount > 0 && (
+                                        <Badge variant="secondary" className="text-xs">
+                                          -{formatCurrency(item.discount)}
+                                        </Badge>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+
+                              <div className="border-t pt-4 space-y-3">
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">Custo Total:</span>
+                                  <span className="font-medium">{formatCurrency(calculateResaleCost())}</span>
+                                </div>
+                                <div className="flex justify-between text-sm">
+                                  <span className="text-muted-foreground">Venda Total:</span>
+                                  <span className="font-medium">{formatCurrency(calculateResaleTotal())}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="font-semibold">Lucro:</span>
+                                  <span className="text-xl font-bold text-green-600">
+                                    {formatCurrency(calculateResaleProfit())}
+                                  </span>
+                                </div>
+                              </div>
+                            </>
+                          )}
+                        </CardContent>
+                      </Card>
                     </div>
 
                     <div>
@@ -468,8 +579,8 @@ export default function RevendasPage() {
                       />
                     </div>
 
-                    <Button onClick={handleAddSale} className="w-full">
-                      Registrar Venda
+                    <Button onClick={handleAddSale} className="w-full" size="lg" disabled={resaleCart.length === 0}>
+                      Finalizar Venda B2B
                     </Button>
                   </div>
                 </DialogContent>
