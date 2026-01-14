@@ -111,8 +111,8 @@ export default function RevendasPage() {
     const product = products.find((p) => p.id === selectedProductId)
     if (!product) return
 
-    if (product.quantity < productQuantity) {
-      toast.error(`Estoque insuficiente! Disponível: ${product.quantity} unidades`)
+    if (product.stock < productQuantity) {
+      toast.error(`Estoque insuficiente! Disponível: ${product.stock} unidades`)
       return
     }
 
@@ -120,8 +120,10 @@ export default function RevendasPage() {
 
     if (existingItem) {
       const newQuantity = existingItem.quantity + productQuantity
-      if (product.quantity < newQuantity) {
-        toast.error(`Estoque insuficiente! Disponível: ${product.quantity} unidades`)
+      if (product.stock < newQuantity) {
+        toast.error(
+          `Estoque insuficiente! Você já tem ${existingItem.quantity} no carrinho. Disponível: ${product.stock} unidades`,
+        )
         return
       }
       setResaleCart(
@@ -134,7 +136,6 @@ export default function RevendasPage() {
     setSelectedProductId("")
     setProductQuantity(1)
     setSearchProduct("")
-    toast.success("Produto adicionado ao carrinho!")
   }
 
   const removeFromResaleCart = (productId: string) => {
