@@ -123,41 +123,16 @@
   }
 }
 
-@media (prefers-color-scheme: dark) {
-  @theme inline {
-    --color-background: #0a0a0a;
-    --color-foreground: #fafafa;
-    --color-card: #171717;
-    --color-card-foreground: #fafafa;
-    --color-primary: #3b82f6;
-    --color-primary-foreground: #ffffff;
-    --color-secondary: #262626;
-    --color-secondary-foreground: #fafafa;
-    --color-muted: #262626;
-    --color-muted-foreground: #a1a1aa;
-    --color-accent: #262626;
-    --color-accent-foreground: #fafafa;
-    --color-destructive: #dc2626;
-    --color-destructive-foreground: #ffffff;
-    --color-border: #262626;
-    --color-input: #262626;
-    --color-ring: #3b82f6;
-    --color-success: #059669;
-    --color-warning: #d97706;
-  }
-}
-
-/* Removed @layer base with @apply to prevent CSS parsing errors */
 * {
-  border-color: var(--color-border);
+  border-color: var(--border);
 }
 
 body {
-  color: var(--color-foreground);
-  background: var(--color-background);
+  color: var(--foreground);
+  background: var(--background);
+  font-family: system-ui, -apple-system, sans-serif;
 }
 
-/* Prevent horizontal scroll on all devices */
 html,
 body {
   overflow-x: hidden;

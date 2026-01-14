@@ -771,7 +771,31 @@ export async function deleteResaleSale(saleId: string): Promise<boolean> {
   const supabase = createClient()
 
   try {
-    // Delete items first
+    const { data: items, error: itemsError } = await supabase
+      .from("resale_sale_items")
+      .select("*")
+      .eq("resale_sale_id", saleId)
+
+    if (itemsError) throw itemsError
+
+    if (items && items.length > 0) {
+      const stockRestores = items.map(async (item) => {
+        const { data: product } = await supabase.from("products").select("stock").eq("id", item.product_id).single()
+
+        if (product) {
+          return supabase
+            .from("products")
+            .update({ stock: product.stock + item.quantity, updated_at: new Date().toISOString() })
+            .eq("id", item.product_id)
+        }
+      })
+
+      await Promise.all(stockRestores)
+    }
+
+    await supabase.from("transactions").delete().eq("sale_id", saleId)
+
+    // Delete items
     await supabase.from("resale_sale_items").delete().eq("resale_sale_id", saleId)
 
     // Delete sale
