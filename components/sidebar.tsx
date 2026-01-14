@@ -28,7 +28,7 @@ const allNavigation = [
   { name: "Estoque", href: "/estoque", icon: Package },
   { name: "Vendas", href: "/vendas", icon: ShoppingCart },
   { name: "Clientes", href: "/clientes", icon: Users },
-  { name: "Revendas", href: "/revendas", icon: Store, adminOnly: true },
+  { name: "Revendas", href: "/revendas", icon: Store },
   { name: "Financeiro", href: "/financeiro", icon: DollarSign, adminOnly: true },
   { name: "Relatórios", href: "/relatorios", icon: BarChart3, adminOnly: true },
   { name: "Configurações", href: "/configuracoes", icon: Settings, adminOnly: true },
@@ -42,7 +42,6 @@ export function Sidebar() {
 
   const navigation = allNavigation.filter((item) => {
     if (item.adminOnly && !isAdmin) return false
-    if (item.funcionarioOnly && isAdmin) return false
     return true
   })
 

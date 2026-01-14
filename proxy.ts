@@ -2,9 +2,9 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 import type { AuthSession } from "@/lib/types"
 
-const ADMIN_ONLY_ROUTES = ["/financeiro", "/relatorios", "/revendas", "/configuracoes"]
+const ADMIN_ONLY_ROUTES = ["/financeiro", "/relatorios", "/configuracoes"]
 
-const FUNCIONARIO_ROUTES = ["/funcionario", "/vendas", "/estoque", "/clientes"]
+const FUNCIONARIO_ROUTES = ["/funcionario", "/vendas", "/estoque", "/clientes", "/revendas"]
 
 export function proxy(request: NextRequest) {
   const sessionCookie = request.cookies.get("session")
