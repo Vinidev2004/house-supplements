@@ -1,5 +1,5 @@
 import { createClient } from "./supabase/client"
-import type { Product, Sale, Transaction, Customer } from "./types"
+import type { Product, Sale, Transaction, Customer, ResaleStore, ResaleSale, ResaleSaleItem } from "./types"
 import { DB_TRANSACTION_TYPES, ERROR_MESSAGES } from "./constants"
 
 // Tipos do banco de dados
@@ -56,6 +56,44 @@ export interface DbCustomer {
   phone: string
   created_at: string
   updated_at: string
+}
+
+export interface DbResaleStore {
+  id: string
+  name: string
+  cnpj: string | null
+  contact_name: string | null
+  phone: string | null
+  email: string | null
+  address: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface DbResaleSale {
+  id: string
+  store_id: string
+  sale_date: string
+  total_cost: number
+  total_sale: number
+  profit: number
+  notes: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface DbResaleSaleItem {
+  id: string
+  resale_sale_id: string
+  product_id: string
+  product_name: string
+  quantity: number
+  unit_cost: number
+  unit_price: number
+  total_cost: number
+  total_sale: number
+  profit: number
+  created_at: string
 }
 
 // Funções de conversão
@@ -120,6 +158,52 @@ function dbCustomerToCustomer(dbCustomer: DbCustomer): Customer {
     phone: dbCustomer.phone,
     createdAt: dbCustomer.created_at,
     updatedAt: dbCustomer.updated_at,
+  }
+}
+
+function dbResaleStoreToResaleStore(dbStore: DbResaleStore): ResaleStore {
+  return {
+    id: dbStore.id,
+    name: dbStore.name,
+    cnpj: dbStore.cnpj || undefined,
+    contactName: dbStore.contact_name || undefined,
+    phone: dbStore.phone || undefined,
+    email: dbStore.email || undefined,
+    address: dbStore.address || undefined,
+    createdAt: dbStore.created_at,
+    updatedAt: dbStore.updated_at,
+  }
+}
+
+function dbResaleSaleToResaleSale(dbSale: DbResaleSale, storeName?: string, items?: DbResaleSaleItem[]): ResaleSale {
+  return {
+    id: dbSale.id,
+    storeId: dbSale.store_id,
+    storeName,
+    saleDate: dbSale.sale_date,
+    totalCost: Number(dbSale.total_cost),
+    totalSale: Number(dbSale.total_sale),
+    profit: Number(dbSale.profit),
+    notes: dbSale.notes || undefined,
+    items: items?.map(dbResaleSaleItemToResaleSaleItem),
+    createdAt: dbSale.created_at,
+    updatedAt: dbSale.updated_at,
+  }
+}
+
+function dbResaleSaleItemToResaleSaleItem(dbItem: DbResaleSaleItem): ResaleSaleItem {
+  return {
+    id: dbItem.id,
+    resaleSaleId: dbItem.resale_sale_id,
+    productId: dbItem.product_id,
+    productName: dbItem.product_name,
+    quantity: dbItem.quantity,
+    unitCost: Number(dbItem.unit_cost),
+    unitPrice: Number(dbItem.unit_price),
+    totalCost: Number(dbItem.total_cost),
+    totalSale: Number(dbItem.total_sale),
+    profit: Number(dbItem.profit),
+    createdAt: dbItem.created_at,
   }
 }
 
@@ -205,7 +289,6 @@ export async function deleteProduct(id: string): Promise<boolean> {
 export async function getSales(): Promise<Sale[]> {
   const supabase = createClient()
 
-  // Fetch sales with customer data in a single query
   const { data: salesData, error: salesError } = await supabase
     .from("sales")
     .select(`
@@ -220,7 +303,6 @@ export async function getSales(): Promise<Sale[]> {
     return []
   }
 
-  // Transform data
   return (salesData || []).map((sale) => {
     const customerName = (sale as any).customers?.name
     const items = (sale as any).sale_items || []
@@ -232,26 +314,26 @@ export async function addSale(sale: Omit<Sale, "id">): Promise<Sale | null> {
   const supabase = createClient()
 
   try {
-    // Validate stock before starting transaction
-    for (const item of sale.products) {
-      const { data: product, error } = await supabase
-        .from("products")
-        .select("stock, name")
-        .eq("id", item.productId)
-        .single()
+    const productIds = sale.products.map((item) => item.productId)
+    const { data: products, error: productsError } = await supabase
+      .from("products")
+      .select("id, stock, name")
+      .in("id", productIds)
 
-      if (error || !product) {
-        console.error("[v0] Product not found:", item.productId)
+    if (productsError || !products) {
+      throw new Error(ERROR_MESSAGES.PRODUCT_NOT_FOUND)
+    }
+
+    for (const item of sale.products) {
+      const product = products.find((p) => p.id === item.productId)
+      if (!product) {
         throw new Error(ERROR_MESSAGES.PRODUCT_NOT_FOUND)
       }
-
       if (product.stock < item.quantity) {
-        console.error("[v0] Insufficient stock for product:", product.name)
         throw new Error(`${ERROR_MESSAGES.INSUFFICIENT_STOCK}: ${product.name}`)
       }
     }
 
-    // Insert sale
     const { data: saleData, error: saleError } = await supabase
       .from("sales")
       .insert({
@@ -274,24 +356,22 @@ export async function addSale(sale: Omit<Sale, "id">): Promise<Sale | null> {
       subtotal: item.subtotal,
     }))
 
-    const { error: itemsError } = await supabase.from("sale_items").insert(items)
-    if (itemsError) throw itemsError
-
-    // Update stock for all products
-    const stockUpdates = sale.products.map(async (item) => {
-      const { data: product } = await supabase.from("products").select("stock").eq("id", item.productId).single()
-
-      if (product) {
+    const [itemsResult] = await Promise.all([
+      supabase.from("sale_items").insert(items),
+      ...sale.products.map((item) => {
+        const product = products.find((p) => p.id === item.productId)!
         return supabase
           .from("products")
-          .update({ stock: product.stock - item.quantity, updated_at: new Date().toISOString() })
+          .update({
+            stock: product.stock - item.quantity,
+            updated_at: new Date().toISOString(),
+          })
           .eq("id", item.productId)
-      }
-    })
+      }),
+    ])
 
-    await Promise.all(stockUpdates)
+    if (itemsResult.error) throw itemsResult.error
 
-    // Add transaction
     await supabase.from("transactions").insert({
       type: DB_TRANSACTION_TYPES.INCOME,
       category: "Vendas",
@@ -299,9 +379,9 @@ export async function addSale(sale: Omit<Sale, "id">): Promise<Sale | null> {
       amount: sale.total,
       sale_id: saleData.id,
       paid: true,
+      date: saleData.created_at,
     })
 
-    // Fetch complete sale data
     const { data: itemsData } = await supabase.from("sale_items").select("*").eq("sale_id", saleData.id)
 
     return dbSaleToSale(saleData, itemsData || [], sale.customerName)
@@ -315,14 +395,12 @@ export async function cancelSale(saleId: string): Promise<boolean> {
   const supabase = createClient()
 
   try {
-    // Fetch sale items
     const { data: items, error: itemsError } = await supabase.from("sale_items").select("*").eq("sale_id", saleId)
 
     if (itemsError || !items) {
       throw new Error(ERROR_MESSAGES.SALE_NOT_FOUND)
     }
 
-    // Restore stock for all products in parallel
     const stockRestores = items.map(async (item) => {
       const { data: product } = await supabase.from("products").select("stock").eq("id", item.product_id).single()
 
@@ -336,15 +414,13 @@ export async function cancelSale(saleId: string): Promise<boolean> {
 
     await Promise.all(stockRestores)
 
-    // Delete related data in parallel
     await Promise.all([
       supabase.from("transactions").delete().eq("sale_id", saleId),
       supabase.from("sale_items").delete().eq("sale_id", saleId),
     ])
 
-    // Delete sale
-    const { error: deleteError } = await supabase.from("sales").delete().eq("id", saleId)
-    if (deleteError) throw deleteError
+    const { error } = await supabase.from("sales").delete().eq("id", saleId)
+    if (error) throw error
 
     return true
   } catch (error) {
@@ -369,7 +445,6 @@ export async function getTransactions(): Promise<Transaction[]> {
 export async function addTransaction(transaction: Omit<Transaction, "id">): Promise<Transaction | null> {
   const supabase = createClient()
 
-  // Validate amount
   if (transaction.amount <= 0) {
     console.error("[v0] Transaction amount must be positive")
     return null
@@ -402,7 +477,6 @@ export async function addTransaction(transaction: Omit<Transaction, "id">): Prom
 export async function deleteTransaction(id: string): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
 
-  // Check if transaction is linked to a sale
   const { data: transaction } = await supabase.from("transactions").select("sale_id").eq("id", id).single()
 
   if (transaction?.sale_id) {
@@ -488,7 +562,6 @@ export async function updateCustomer(id: string, updates: Partial<Customer>): Pr
 export async function deleteCustomer(id: string): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
 
-  // Check if customer has associated sales
   const { data: sales } = await supabase.from("sales").select("id").eq("customer_id", id).limit(1)
 
   if (sales && sales.length > 0) {
@@ -503,4 +576,223 @@ export async function deleteCustomer(id: string): Promise<{ success: boolean; er
   }
 
   return { success: true }
+}
+
+// REVENDAS (B2B)
+export async function getResaleStores(): Promise<ResaleStore[]> {
+  const supabase = createClient()
+  const { data, error } = await supabase.from("resale_stores").select("*").order("name")
+
+  if (error) {
+    console.error("[v0] Error fetching resale stores:", error)
+    return []
+  }
+
+  return (data || []).map(dbResaleStoreToResaleStore)
+}
+
+export async function addResaleStore(
+  store: Omit<ResaleStore, "id" | "createdAt" | "updatedAt">,
+): Promise<ResaleStore | null> {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("resale_stores")
+    .insert({
+      name: store.name,
+      cnpj: store.cnpj || null,
+      contact_name: store.contactName || null,
+      phone: store.phone || null,
+      email: store.email || null,
+      address: store.address || null,
+    })
+    .select()
+    .single()
+
+  if (error) {
+    console.error("[v0] Error adding resale store:", error)
+    return null
+  }
+
+  return dbResaleStoreToResaleStore(data)
+}
+
+export async function updateResaleStore(id: string, updates: Partial<ResaleStore>): Promise<ResaleStore | null> {
+  const supabase = createClient()
+  const dbUpdates: any = { updated_at: new Date().toISOString() }
+
+  if (updates.name !== undefined) dbUpdates.name = updates.name
+  if (updates.cnpj !== undefined) dbUpdates.cnpj = updates.cnpj || null
+  if (updates.contactName !== undefined) dbUpdates.contact_name = updates.contactName || null
+  if (updates.phone !== undefined) dbUpdates.phone = updates.phone || null
+  if (updates.email !== undefined) dbUpdates.email = updates.email || null
+  if (updates.address !== undefined) dbUpdates.address = updates.address || null
+
+  const { data, error } = await supabase.from("resale_stores").update(dbUpdates).eq("id", id).select().single()
+
+  if (error) {
+    console.error("[v0] Error updating resale store:", error)
+    return null
+  }
+
+  return dbResaleStoreToResaleStore(data)
+}
+
+export async function deleteResaleStore(id: string): Promise<boolean> {
+  const supabase = createClient()
+  const { error } = await supabase.from("resale_stores").delete().eq("id", id)
+
+  if (error) {
+    console.error("[v0] Error deleting resale store:", error)
+    return false
+  }
+
+  return true
+}
+
+export async function getResaleSales(): Promise<ResaleSale[]> {
+  const supabase = createClient()
+
+  const { data: salesData, error: salesError } = await supabase
+    .from("resale_sales")
+    .select(`
+      *,
+      resale_stores(name),
+      resale_sale_items(*)
+    `)
+    .order("sale_date", { ascending: false })
+
+  if (salesError) {
+    console.error("[v0] Error fetching resale sales:", salesError)
+    return []
+  }
+
+  return (salesData || []).map((sale) => {
+    const storeName = (sale as any).resale_stores?.name
+    const items = (sale as any).resale_sale_items || []
+    return dbResaleSaleToResaleSale(sale, storeName, items)
+  })
+}
+
+export async function addResaleSale(
+  sale: Omit<ResaleSale, "id" | "createdAt" | "updatedAt">,
+): Promise<ResaleSale | null> {
+  const supabase = createClient()
+
+  try {
+    let totalCost = 0
+    let totalSale = 0
+
+    const items = sale.items || []
+    items.forEach((item) => {
+      totalCost += item.totalCost
+      totalSale += item.totalSale
+    })
+
+    const profit = totalSale - totalCost
+
+    const productIds = items.map((item) => item.productId)
+    const { data: products } = await supabase.from("products").select("id, stock").in("id", productIds)
+
+    const productMap = new Map(products?.map((p) => [p.id, p.stock]) || [])
+
+    const { data: saleData, error: saleError } = await supabase
+      .from("resale_sales")
+      .insert({
+        store_id: sale.storeId,
+        sale_date: sale.saleDate,
+        total_cost: totalCost,
+        total_sale: totalSale,
+        profit: profit,
+        notes: sale.notes || null,
+      })
+      .select()
+      .single()
+
+    if (saleError) throw saleError
+
+    if (items.length > 0) {
+      const itemsToInsert = items.map((item) => ({
+        resale_sale_id: saleData.id,
+        product_id: item.productId,
+        product_name: item.productName,
+        quantity: item.quantity,
+        unit_cost: item.unitCost,
+        unit_price: item.unitPrice,
+        total_cost: item.totalCost,
+        total_sale: item.totalSale,
+        profit: item.profit,
+      }))
+
+      await Promise.all([
+        supabase.from("resale_sale_items").insert(itemsToInsert),
+        ...items.map((item) => {
+          const currentStock = productMap.get(item.productId) || 0
+          return supabase
+            .from("products")
+            .update({
+              stock: currentStock - item.quantity,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", item.productId)
+        }),
+      ])
+    }
+
+    await supabase.from("transactions").insert({
+      type: DB_TRANSACTION_TYPES.INCOME,
+      category: "Revendas",
+      description: `Revenda #${saleData.id.substring(0, 8)}`,
+      amount: totalSale,
+      sale_id: saleData.id,
+      paid: true,
+      date: sale.saleDate,
+    })
+
+    const { data: itemsData } = await supabase.from("resale_sale_items").select("*").eq("resale_sale_id", saleData.id)
+
+    return dbResaleSaleToResaleSale(saleData, sale.storeName, itemsData || [])
+  } catch (error) {
+    console.error("[v0] Error adding resale sale:", error)
+    return null
+  }
+}
+
+export async function deleteResaleSale(saleId: string): Promise<boolean> {
+  const supabase = createClient()
+
+  try {
+    const { data: items, error: itemsError } = await supabase
+      .from("resale_sale_items")
+      .select("*")
+      .eq("resale_sale_id", saleId)
+
+    if (itemsError) throw itemsError
+
+    if (items && items.length > 0) {
+      const stockRestores = items.map(async (item) => {
+        const { data: product } = await supabase.from("products").select("stock").eq("id", item.product_id).single()
+
+        if (product) {
+          return supabase
+            .from("products")
+            .update({ stock: product.stock + item.quantity, updated_at: new Date().toISOString() })
+            .eq("id", item.product_id)
+        }
+      })
+
+      await Promise.all(stockRestores)
+    }
+
+    await supabase.from("transactions").delete().eq("sale_id", saleId)
+
+    await supabase.from("resale_sale_items").delete().eq("resale_sale_id", saleId)
+
+    const { error } = await supabase.from("resale_sales").delete().eq("id", saleId)
+    if (error) throw error
+
+    return true
+  } catch (error) {
+    console.error("[v0] Error deleting resale sale:", error)
+    return false
+  }
 }

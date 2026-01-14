@@ -6,8 +6,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { getProducts, getSales, getTransactions } from "@/lib/database"
-import type { Product, Sale, Transaction } from "@/lib/types"
+import { getProducts, getSales, getTransactions, getResaleSales } from "@/lib/database"
+import type { Product, Sale, Transaction, ResaleSale } from "@/lib/types"
 import {
   Bar,
   BarChart,
@@ -24,7 +24,7 @@ import {
 } from "recharts"
 import { ChartContainer, ChartTooltip } from "@/components/ui/chart"
 import { ReportStatCard } from "@/components/report-stat-card"
-import { TrendingUp, ShoppingCart, Package, AlertTriangle, Calendar } from "lucide-react"
+import { TrendingUp, ShoppingCart, Package, AlertTriangle, Calendar, Store } from "lucide-react"
 import { formatCurrency } from "@/lib/utils"
 
 type PeriodFilter = "7d" | "30d" | "90d" | "all" | "custom"
@@ -33,6 +33,7 @@ export default function RelatoriosPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [sales, setSales] = useState<Sale[]>([])
   const [transactions, setTransactions] = useState<Transaction[]>([])
+  const [resaleSales, setResaleSales] = useState<ResaleSale[]>([])
   const [period, setPeriod] = useState<PeriodFilter>("30d")
   const [customDays, setCustomDays] = useState<string>("")
   const [customMonths, setCustomMonths] = useState<string>("")
@@ -50,14 +51,16 @@ export default function RelatoriosPage() {
 
   const loadData = async () => {
     setIsLoading(true)
-    const [productsData, salesData, transactionsData] = await Promise.all([
+    const [productsData, salesData, transactionsData, resaleSalesData] = await Promise.all([
       getProducts(),
       getSales(),
       getTransactions(),
+      getResaleSales(),
     ])
     setProducts(productsData)
     setSales(salesData)
     setTransactions(transactionsData)
+    setResaleSales(resaleSalesData)
     setIsLoading(false)
   }
 
@@ -83,10 +86,36 @@ export default function RelatoriosPage() {
     return items.filter((item) => new Date(item.date) >= cutoffDate)
   }
 
+  const filterResalesByPeriod = (items: ResaleSale[]): ResaleSale[] => {
+    if (period === "all") return items
+
+    const now = new Date()
+    let days = 0
+
+    if (period === "custom") {
+      if (customDays) {
+        days = Number.parseInt(customDays)
+      } else if (customMonths) {
+        days = Number.parseInt(customMonths) * 30
+      } else {
+        return items
+      }
+    } else {
+      days = period === "7d" ? 7 : period === "30d" ? 30 : 90
+    }
+
+    const cutoffDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+    return items.filter((item) => new Date(item.saleDate) >= cutoffDate)
+  }
+
   const filteredSales = filterByPeriod(sales)
   const filteredTransactions = filterByPeriod(transactions)
+  const filteredResaleSales = filterResalesByPeriod(resaleSales)
 
   const totalRevenue = filteredTransactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
+
+  const b2bRevenue = filteredResaleSales.reduce((sum, rs) => sum + rs.totalSale, 0)
+  const b2bProfit = filteredResaleSales.reduce((sum, rs) => sum + rs.profit, 0)
 
   const totalSalesCount = filteredSales.filter((s) => s.status === "completed").length
 
@@ -149,15 +178,21 @@ export default function RelatoriosPage() {
         .filter((t) => t.type === "income" && t.date.startsWith(dateStr))
         .reduce((sum, t) => sum + t.amount, 0)
 
+      const dayB2BRevenue = filteredResaleSales
+        .filter((rs) => rs.saleDate.startsWith(dateStr))
+        .reduce((sum, rs) => sum + rs.totalSale, 0)
+
       const dayExpenses = filteredTransactions
         .filter((t) => t.type === "expense" && t.date.startsWith(dateStr))
         .reduce((sum, t) => sum + t.amount, 0)
 
+      const totalDayRevenue = dayRevenue + dayB2BRevenue
+
       data.push({
         date: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
-        receitas: dayRevenue,
+        receitas: totalDayRevenue,
         despesas: dayExpenses,
-        lucro: dayRevenue - dayExpenses,
+        lucro: totalDayRevenue - dayExpenses,
       })
     }
 
@@ -365,8 +400,11 @@ export default function RelatoriosPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 max-w-full">
-        <ReportStatCard title="Receita Total" value={formatCurrency(totalRevenue)} icon={TrendingUp} />
+        <ReportStatCard title="Receita Total" value={formatCurrency(totalRevenue + b2bRevenue)} icon={TrendingUp} />
+        <ReportStatCard title="Receita B2B" value={formatCurrency(b2bRevenue)} icon={Store} />
+        <ReportStatCard title="Lucro B2B" value={formatCurrency(b2bProfit)} icon={TrendingUp} />
         <ReportStatCard title="Total de Vendas" value={totalSalesCount} icon={ShoppingCart} />
+        <ReportStatCard title="Vendas B2B" value={filteredResaleSales.length} icon={Store} />
         <ReportStatCard title="Ticket Médio" value={formatCurrency(averageTicket)} icon={TrendingUp} />
         <ReportStatCard
           title="Alertas de Estoque"
@@ -377,9 +415,12 @@ export default function RelatoriosPage() {
       </div>
 
       <Tabs defaultValue="vendas" className="w-full max-w-full">
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="vendas" className="text-xs md:text-sm">
             Vendas
+          </TabsTrigger>
+          <TabsTrigger value="b2b" className="text-xs md:text-sm">
+            B2B
           </TabsTrigger>
           <TabsTrigger value="estoque" className="text-xs md:text-sm">
             Estoque
@@ -485,6 +526,76 @@ export default function RelatoriosPage() {
               ) : (
                 <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
                   Nenhuma venda no período selecionado
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="b2b" className="space-y-4 mt-4 max-w-full">
+          <Card className="max-w-full overflow-hidden">
+            <CardHeader>
+              <CardTitle className="text-base md:text-lg">Vendas B2B por Loja</CardTitle>
+              <CardDescription className="text-xs md:text-sm">
+                Detalhamento das vendas para revendedores no período
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {filteredResaleSales.length > 0 ? (
+                <div className="space-y-4">
+                  {filteredResaleSales.map((resale) => (
+                    <Card key={resale.id} className="border-l-4 border-l-primary">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col gap-3">
+                          <div className="flex items-start justify-between">
+                            <div className="space-y-1">
+                              <p className="font-semibold">{resale.storeName || "Loja sem nome"}</p>
+                              <p className="text-xs text-muted-foreground">
+                                Data: {new Date(resale.saleDate).toLocaleDateString("pt-BR")}
+                              </p>
+                            </div>
+                            <div className="text-right space-y-1">
+                              <p className="text-sm text-muted-foreground">Valor Total</p>
+                              <p className="text-lg font-bold text-primary">{formatCurrency(resale.totalSale)}</p>
+                            </div>
+                          </div>
+
+                          {resale.items && resale.items.length > 0 && (
+                            <div className="border-t pt-3 space-y-2">
+                              <p className="text-sm font-medium">Produtos vendidos:</p>
+                              {resale.items.map((item, idx) => (
+                                <div key={idx} className="flex justify-between text-xs bg-muted/50 p-2 rounded">
+                                  <span>
+                                    {item.productName} x{item.quantity}
+                                  </span>
+                                  <span className="font-medium">{formatCurrency(item.totalSale)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          <div className="grid grid-cols-3 gap-2 border-t pt-3 text-xs">
+                            <div>
+                              <p className="text-muted-foreground">Custo</p>
+                              <p className="font-semibold text-destructive">{formatCurrency(resale.totalCost)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Venda</p>
+                              <p className="font-semibold text-primary">{formatCurrency(resale.totalSale)}</p>
+                            </div>
+                            <div>
+                              <p className="text-muted-foreground">Lucro</p>
+                              <p className="font-semibold text-success">{formatCurrency(resale.profit)}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+                  Nenhuma venda B2B no período selecionado
                 </div>
               )}
             </CardContent>

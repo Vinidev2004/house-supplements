@@ -5,7 +5,7 @@ import "./globals.css"
 import { Sidebar } from "@/components/sidebar"
 import { MobileNav } from "@/components/mobile-nav"
 import Image from "next/image"
-import { Toaster } from "@/components/ui/toaster"
+import { Toaster } from "sonner"
 import { isAuthenticated } from "@/lib/auth"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -20,12 +20,8 @@ export const metadata: Metadata = {
       { url: "/favicon.png/favicon-96x96.png", sizes: "96x96", type: "image/png" },
       { url: "/favicon.png/favicon.svg", type: "image/svg+xml" },
     ],
-    apple: [
-      { url: "/favicon.png/apple-touch-icon.png", sizes: "180x180" },
-    ],
-    other: [
-      { url: "/favicon.png/site.webmanifest", rel: "manifest" },
-    ],
+    apple: [{ url: "/favicon.png/apple-touch-icon.png", sizes: "180x180" }],
+    other: [{ url: "/favicon.png/site.webmanifest", rel: "manifest" }],
   },
 }
 
@@ -37,7 +33,7 @@ export default async function RootLayout({
   const authenticated = await isAuthenticated()
 
   return (
-    <html lang="pt-BR">
+    <html lang="pt-BR" className="dark">
       <head>
         {/* Para garantir compatibilidade máxima */}
         <link rel="icon" type="image/png" href="/favicon.png/favicon-96x96.png" sizes="96x96" />
@@ -67,7 +63,7 @@ export default async function RootLayout({
         ) : (
           <main className="min-h-screen bg-background">{children}</main>
         )}
-        <Toaster />
+        <Toaster position="top-right" richColors />
       </body>
     </html>
   )
