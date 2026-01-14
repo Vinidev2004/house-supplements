@@ -361,8 +361,7 @@ export async function addSale(sale: Omit<Sale, "id">): Promise<Sale | null> {
     const { error: itemsError } = await supabase.from("sale_items").insert(items)
     if (itemsError) throw itemsError
 
-    // Update stock for all products
-    const stockUpdates = sale.products.map(async (item) => {
+    const stockUpdates = items.map(async (item) => {
       const { data: product } = await supabase.from("products").select("stock").eq("id", item.productId).single()
 
       if (product) {
@@ -735,6 +734,19 @@ export async function addResaleSale(
       const { error: itemsError } = await supabase.from("resale_sale_items").insert(itemsToInsert)
       if (itemsError) throw itemsError
     }
+
+    const stockUpdates = items.map(async (item) => {
+      const { data: product } = await supabase.from("products").select("stock").eq("id", item.productId).single()
+
+      if (product) {
+        return supabase
+          .from("products")
+          .update({ stock: product.stock - item.quantity, updated_at: new Date().toISOString() })
+          .eq("id", item.productId)
+      }
+    })
+
+    await Promise.all(stockUpdates)
 
     // Fetch complete sale data
     const { data: itemsData } = await supabase.from("resale_sale_items").select("*").eq("resale_sale_id", saleData.id)
