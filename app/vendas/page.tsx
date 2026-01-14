@@ -90,12 +90,14 @@ export default function SalesPage() {
         const data = await response.json()
         userData = data.user
         setCurrentUser(userData)
+        console.log("[v0] Current user loaded:", userData) // Debug log to check user data
       }
     } catch (error) {
       console.error("Error fetching user:", error)
     }
 
     const userId = userData?.role === "funcionario" ? userData.id : undefined
+    console.log("[v0] Fetching sales with userId:", userId, "for role:", userData?.role) // Debug log
 
     const [salesData, productsData, customersData] = await Promise.all([
       getSales(userId),
@@ -103,6 +105,7 @@ export default function SalesPage() {
       getCustomers(),
     ])
 
+    console.log("[v0] Sales loaded:", salesData.length, "sales") // Debug log
     setSales(salesData)
     setFilteredSales(salesData)
     setProducts(productsData)
