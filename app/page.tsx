@@ -58,8 +58,8 @@ export default function DashboardPage() {
       <div className="grid gap-3 sm:grid-cols-2 md:gap-4 lg:grid-cols-3">
         <StatCard
           title="Receita Total"
-          value={formatCurrency(stats.totalRevenue)}
-          description={`Varejo + B2B (${formatCurrency(stats.b2bRevenue)} B2B)`}
+          value={formatCurrency(stats.totalRevenue + stats.b2bRevenue)}
+          description={`Varejo: ${formatCurrency(stats.totalRevenue)} | B2B: ${formatCurrency(stats.b2bRevenue)}`}
           icon={DollarSign}
         />
         <StatCard

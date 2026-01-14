@@ -52,7 +52,7 @@ export const getLowStockProducts = async () => {
 }
 
 export const getSalesChartData = async (days = 7) => {
-  const sales = await getSales()
+  const [sales, resaleSales] = await Promise.all([getSales(), getResaleSales()])
   const now = new Date()
   const chartData = []
 
@@ -69,7 +69,14 @@ export const getSalesChartData = async (days = 7) => {
       return saleDate >= date && saleDate < nextDate && s.status === SALE_STATUS.COMPLETED
     })
 
-    const total = daySales.reduce((sum, s) => sum + s.total, 0)
+    const dayB2BSales = resaleSales.filter((rs) => {
+      const saleDate = new Date(rs.saleDate)
+      return saleDate >= date && saleDate < nextDate
+    })
+
+    const regularTotal = daySales.reduce((sum, s) => sum + s.total, 0)
+    const b2bTotal = dayB2BSales.reduce((sum, rs) => sum + rs.totalSale, 0)
+    const total = regularTotal + b2bTotal
 
     chartData.push({
       date: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
