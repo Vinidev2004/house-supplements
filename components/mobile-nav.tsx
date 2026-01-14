@@ -5,7 +5,6 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
   Menu,
@@ -22,9 +21,10 @@ import {
 import Image from "next/image"
 import { logout } from "@/lib/auth"
 import { useUser } from "@/lib/user-context"
+import { Badge } from "@/components/ui/badge"
 
-const allNavigation = [
-  { name: "Painel", href: "/", icon: LayoutDashboard, roles: ["admin", "funcionario"] },
+const navigation = [
+  { name: "Dashboard", href: "/", icon: LayoutDashboard, roles: ["admin"] },
   { name: "Estoque", href: "/estoque", icon: Package, roles: ["admin", "funcionario"] },
   { name: "Vendas", href: "/vendas", icon: ShoppingCart, roles: ["admin", "funcionario"] },
   { name: "Clientes", href: "/clientes", icon: Users, roles: ["admin", "funcionario"] },
@@ -39,9 +39,7 @@ export function MobileNav() {
   const pathname = usePathname()
   const router = useRouter()
   const [isLoggingOut, setIsLoggingOut] = useState(false)
-  const { user } = useUser()
-
-  const navigation = allNavigation.filter((item) => user && item.roles.includes(user.role))
+  const { user, loading } = useUser()
 
   const handleLogout = async () => {
     setIsLoggingOut(true)
@@ -55,24 +53,29 @@ export function MobileNav() {
     }
   }
 
+  const filteredNavigation = navigation.filter((item) => {
+    if (!user) return false
+    return item.roles.includes(user.role)
+  })
+
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button variant="ghost" size="icon" className="md:hidden text-zinc-400">
+        <Button variant="ghost" size="icon" className="md:hidden">
           <Menu className="h-5 w-5" />
           <span className="sr-only">Toggle menu</span>
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-64 p-0 bg-zinc-900 border-zinc-800">
+      <SheetContent side="left" className="w-64 p-0">
         <div className="flex h-full flex-col">
-          <div className="flex h-16 items-center gap-3 border-b border-zinc-800 px-6">
+          <div className="flex h-16 items-center gap-3 border-b px-6">
             <div className="relative h-10 w-10 flex-shrink-0 overflow-hidden rounded-full bg-black">
-              <Image src="/logo.webp" alt="House Supplements Logo" fill className="object-contain p-1" priority />
+              <Image src="/logo.png" alt="House Supplements Logo" fill className="object-cover" priority />
             </div>
             <h1 className="text-lg font-bold text-red-500">House Supplements</h1>
           </div>
           <nav className="flex-1 space-y-1 p-4">
-            {navigation.map((item) => {
+            {filteredNavigation.map((item) => {
               const isActive = pathname === item.href
               return (
                 <Link
@@ -81,7 +84,9 @@ export function MobileNav() {
                   onClick={() => setOpen(false)}
                   className={cn(
                     "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
-                    isActive ? "bg-red-600 text-white" : "text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100",
+                    isActive
+                      ? "bg-primary text-primary-foreground"
+                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
                   )}
                 >
                   <item.icon className="h-5 w-5" />
@@ -90,27 +95,25 @@ export function MobileNav() {
               )
             })}
           </nav>
-          <div className="border-t border-zinc-800 p-4 space-y-3">
-            {user && (
-              <div className="space-y-1 px-3 py-2 rounded-lg bg-zinc-800">
-                <p className="text-sm font-medium text-zinc-100">{user.name}</p>
-                <div className="flex items-center gap-2">
-                  <Badge variant={user.role === "admin" ? "default" : "secondary"} className="text-xs">
-                    {user.role === "admin" ? "Administrador" : "Funcionário"}
-                  </Badge>
-                </div>
+          <div className="border-t p-4 space-y-2">
+            {user && !loading && (
+              <div className="mb-2 px-3 py-2">
+                <p className="text-sm font-medium">{user.name}</p>
+                <Badge variant={user.role === "admin" ? "default" : "secondary"} className="mt-1">
+                  {user.role === "admin" ? "Administrador" : "Funcionário"}
+                </Badge>
               </div>
             )}
             <Button
               variant="ghost"
-              className="w-full justify-start text-zinc-400 hover:bg-zinc-800 hover:text-zinc-100"
+              className="w-full justify-start text-muted-foreground hover:text-accent-foreground"
               onClick={handleLogout}
               disabled={isLoggingOut}
             >
               <LogOut className="mr-3 h-5 w-5" />
               {isLoggingOut ? "Saindo..." : "Sair"}
             </Button>
-            <p className="text-xs text-zinc-500 px-3">Sistema de Gestão v1.0</p>
+            <p className="text-xs text-muted-foreground">Sistema de Gestão v1.0</p>
           </div>
         </div>
       </SheetContent>

@@ -1,49 +1,44 @@
 "use client"
 
 import type React from "react"
-
 import { createContext, useContext, useEffect, useState } from "react"
-import type { User } from "./types"
+import type { User } from "@/lib/types"
 
 interface UserContextType {
   user: User | null
-  isLoading: boolean
+  loading: boolean
 }
 
 const UserContext = createContext<UserContextType>({
   user: null,
-  isLoading: true,
+  loading: true,
 })
 
 export function UserProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    async function loadUser() {
+    async function fetchUser() {
       try {
         const response = await fetch("/api/auth/me")
         if (response.ok) {
-          const data = await response.json()
-          setUser(data.user)
+          const userData = await response.json()
+          setUser(userData)
         }
       } catch (error) {
-        console.error("Failed to load user:", error)
+        console.error("Error fetching user:", error)
       } finally {
-        setIsLoading(false)
+        setLoading(false)
       }
     }
 
-    loadUser()
+    fetchUser()
   }, [])
 
-  return <UserContext.Provider value={{ user, isLoading }}>{children}</UserContext.Provider>
+  return <UserContext.Provider value={{ user, loading }}>{children}</UserContext.Provider>
 }
 
 export function useUser() {
-  const context = useContext(UserContext)
-  if (context === undefined) {
-    throw new Error("useUser must be used within a UserProvider")
-  }
-  return context
+  return useContext(UserContext)
 }
