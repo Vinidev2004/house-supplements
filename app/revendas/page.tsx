@@ -23,6 +23,17 @@ import {
 } from "@/lib/database"
 import type { ResaleStore, ResaleSale, ResaleSaleItem, Product } from "@/lib/types"
 import { formatCurrency } from "@/lib/utils"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
 
 interface ResaleCartItem {
   product: Product
@@ -221,14 +232,12 @@ export default function RevendasPage() {
   }
 
   async function handleDeleteSale(id: string) {
-    if (!confirm("Tem certeza que deseja excluir esta venda?")) return
-
     const success = await deleteResaleSale(id)
     if (success) {
-      setSales(sales.filter((s) => s.id !== id))
-      toast.success("Venda excluída com sucesso!")
+      await loadData()
+      toast.success("Venda B2B cancelada com sucesso! Os produtos foram devolvidos ao estoque.")
     } else {
-      toast.error("Erro ao excluir venda")
+      toast.error("Erro ao cancelar venda B2B")
     }
   }
 
@@ -716,16 +725,31 @@ export default function RevendasPage() {
                                               <CardDescription className="text-xs mt-1">{sale.notes}</CardDescription>
                                             )}
                                           </div>
-                                          <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            onClick={(e) => {
-                                              e.stopPropagation()
-                                              handleDeleteSale(sale.id)
-                                            }}
-                                          >
-                                            <Trash2 className="h-4 w-4" />
-                                          </Button>
+                                          <AlertDialog>
+                                            <AlertDialogTrigger asChild>
+                                              <Button variant="ghost" size="icon">
+                                                <Trash2 className="h-4 w-4" />
+                                              </Button>
+                                            </AlertDialogTrigger>
+                                            <AlertDialogContent>
+                                              <AlertDialogHeader>
+                                                <AlertDialogTitle>Cancelar Venda B2B</AlertDialogTitle>
+                                                <AlertDialogDescription>
+                                                  Tem certeza que deseja cancelar esta venda? Os produtos serão
+                                                  devolvidos ao estoque e a receita será removida dos relatórios.
+                                                </AlertDialogDescription>
+                                              </AlertDialogHeader>
+                                              <AlertDialogFooter>
+                                                <AlertDialogCancel>Não</AlertDialogCancel>
+                                                <AlertDialogAction
+                                                  onClick={() => handleDeleteSale(sale.id)}
+                                                  className="bg-destructive hover:bg-destructive/90"
+                                                >
+                                                  Sim, cancelar venda
+                                                </AlertDialogAction>
+                                              </AlertDialogFooter>
+                                            </AlertDialogContent>
+                                          </AlertDialog>
                                         </div>
                                       </CardHeader>
                                       <CardContent className="space-y-3">
