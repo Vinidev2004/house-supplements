@@ -1,51 +1,43 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import type { AuthSession } from "@/lib/types"
+import type React from "react"
+
+import { createContext, useContext, useEffect, useState } from "react"
+import type { User } from "./types"
 
 interface UserContextType {
-  user: AuthSession | null
+  user: User | null
   isLoading: boolean
-  isAdmin: boolean
-  isFuncionario: boolean
-  refreshUser: () => Promise<void>
 }
 
-const UserContext = createContext<UserContextType | undefined>(undefined)
+const UserContext = createContext<UserContextType>({
+  user: null,
+  isLoading: true,
+})
 
-export function UserProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<AuthSession | null>(null)
+export function UserProvider({ children }: { children: React.ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  const refreshUser = async () => {
-    try {
-      const response = await fetch("/api/auth/me")
-      if (response.ok) {
-        const data = await response.json()
-        setUser(data.user)
-      } else {
-        setUser(null)
-      }
-    } catch {
-      setUser(null)
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
   useEffect(() => {
-    refreshUser()
+    async function loadUser() {
+      try {
+        const response = await fetch("/api/auth/me")
+        if (response.ok) {
+          const data = await response.json()
+          setUser(data.user)
+        }
+      } catch (error) {
+        console.error("Failed to load user:", error)
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    loadUser()
   }, [])
 
-  const value: UserContextType = {
-    user,
-    isLoading,
-    isAdmin: user?.role === "admin",
-    isFuncionario: user?.role === "funcionario",
-    refreshUser,
-  }
-
-  return <UserContext.Provider value={value}>{children}</UserContext.Provider>
+  return <UserContext.Provider value={{ user, isLoading }}>{children}</UserContext.Provider>
 }
 
 export function useUser() {

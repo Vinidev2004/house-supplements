@@ -26,12 +26,12 @@ export default function LoginPage() {
       const result = await login(username, password)
 
       if (result.success && result.user) {
-        toast.success(`Bem-vindo, ${result.user.name || username}!`)
+        toast.success("Login realizado com sucesso!")
 
         if (result.user.role === "funcionario") {
-          window.location.href = "/funcionario"
+          router.replace("/")
         } else {
-          window.location.href = "/"
+          router.replace("/")
         }
       } else {
         toast.error(result.error || "Usuário ou senha incorretos")
@@ -44,28 +44,28 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-900 p-4">
-      <Card className="w-full max-w-md border-zinc-800 bg-zinc-800/50">
+    <div className="flex min-h-screen items-center justify-center bg-zinc-950 p-4">
+      <Card className="w-full max-w-md border-zinc-800 bg-zinc-900">
         <CardHeader className="space-y-4 text-center">
-          <div className="mx-auto flex h-24 w-24 items-center justify-center overflow-hidden rounded-full bg-black ring-4 ring-red-500/50">
+          <div className="mx-auto h-32 w-32 overflow-hidden rounded-full bg-black p-4">
             <Image
               src="/logo.webp"
               alt="House Supplements Logo"
-              width={96}
-              height={96}
-              className="object-cover"
+              width={128}
+              height={128}
+              className="object-contain"
               priority
             />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold text-white">House Supplements</CardTitle>
+            <CardTitle className="text-2xl font-bold text-red-500">House Supplements</CardTitle>
             <CardDescription className="text-zinc-400">Sistema de Gestão</CardDescription>
           </div>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="username" className="text-zinc-300">
+              <Label htmlFor="username" className="text-zinc-200">
                 Usuário
               </Label>
               <Input
@@ -76,11 +76,11 @@ export default function LoginPage() {
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 disabled={isLoading}
-                className="border-zinc-700 bg-zinc-900 text-white placeholder:text-zinc-500 focus:border-red-500 focus:ring-red-500"
+                className="border-zinc-700 bg-zinc-800 text-white placeholder:text-zinc-500 focus:border-red-500 focus:ring-red-500"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password" className="text-zinc-300">
+              <Label htmlFor="password" className="text-zinc-200">
                 Senha
               </Label>
               <Input
@@ -91,10 +91,10 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 disabled={isLoading}
-                className="border-zinc-700 bg-zinc-900 text-white placeholder:text-zinc-500 focus:border-red-500 focus:ring-red-500"
+                className="border-zinc-700 bg-zinc-800 text-white placeholder:text-zinc-500 focus:border-red-500 focus:ring-red-500"
               />
             </div>
-            <Button type="submit" className="w-full bg-red-600 text-white hover:bg-red-700" disabled={isLoading}>
+            <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" disabled={isLoading}>
               {isLoading ? "Entrando..." : "Entrar"}
             </Button>
           </form>

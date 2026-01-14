@@ -65,43 +65,43 @@ Sistema completo para gestão de lojas de suplementos com controle de estoque, v
 ## 🎯 Início Rápido
 
 ### 1. Clone o Repositório
-\`\`\`bash
+```bash
 git clone https://github.com/seu-usuario/house-supplements.git
 cd house-supplements
-\`\`\`
+```
 
 ### 2. Instale as Dependências
-\`\`\`bash
+```bash
 npm install
-\`\`\`
+```
 
 ### 3. Configure o Supabase
 
 1. Crie um projeto no [Supabase](https://supabase.com)
 2. Execute os scripts SQL em ordem:
-\`\`\`bash
+```bash
 # Conecte ao seu banco Supabase e execute:
 scripts/001_create_tables.sql
 scripts/002_*.sql
 ...
 scripts/013_add_performance_indexes.sql
-\`\`\`
+```
 
 3. Configure as variáveis de ambiente:
-\`\`\`env
+```env
 NEXT_PUBLIC_SUPABASE_URL=sua-url-supabase
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sua-chave-anon
-\`\`\`
+```
 
 ### 4. Inicie o Servidor
-\`\`\`bash
+```bash
 npm run dev
-\`\`\`
+```
 
 ### 5. Acesse o Sistema
-\`\`\`
+```
 http://localhost:3000
-\`\`\`
+```
 
 ## 📚 Documentação Completa
 
