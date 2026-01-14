@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -39,6 +38,24 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
     description: product?.description || "",
     estimatedConsumptionDays: product?.estimatedConsumptionDays?.toString() || "",
   })
+
+  const [currentUser, setCurrentUser] = useState<{ role: string } | null>(null)
+
+  useEffect(() => {
+    loadCurrentUser()
+  }, [])
+
+  const loadCurrentUser = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const user = await response.json()
+        setCurrentUser(user)
+      }
+    } catch (error) {
+      console.error("Error loading user:", error)
+    }
+  }
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
@@ -108,17 +125,19 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
           />
         </div>
 
-        <div className="space-y-2">
-          <Label htmlFor="cost">Custo (R$) *</Label>
-          <Input
-            id="cost"
-            type="number"
-            step="0.01"
-            value={formData.cost}
-            onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
-            required
-          />
-        </div>
+        {currentUser?.role === "admin" && (
+          <div className="space-y-2">
+            <Label htmlFor="cost">Custo (R$) *</Label>
+            <Input
+              id="cost"
+              type="number"
+              step="0.01"
+              value={formData.cost}
+              onChange={(e) => setFormData({ ...formData, cost: e.target.value })}
+              required
+            />
+          </div>
+        )}
 
         <div className="space-y-2">
           <Label htmlFor="stock">Quantidade em Estoque *</Label>
