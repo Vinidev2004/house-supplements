@@ -178,15 +178,21 @@ export default function RelatoriosPage() {
         .filter((t) => t.type === "income" && t.date.startsWith(dateStr))
         .reduce((sum, t) => sum + t.amount, 0)
 
+      const dayB2BRevenue = filteredResaleSales
+        .filter((rs) => rs.saleDate.startsWith(dateStr))
+        .reduce((sum, rs) => sum + rs.totalSale, 0)
+
       const dayExpenses = filteredTransactions
         .filter((t) => t.type === "expense" && t.date.startsWith(dateStr))
         .reduce((sum, t) => sum + t.amount, 0)
 
+      const totalDayRevenue = dayRevenue + dayB2BRevenue
+
       data.push({
         date: date.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
-        receitas: dayRevenue,
+        receitas: totalDayRevenue,
         despesas: dayExpenses,
-        lucro: dayRevenue - dayExpenses,
+        lucro: totalDayRevenue - dayExpenses,
       })
     }
 
@@ -394,7 +400,7 @@ export default function RelatoriosPage() {
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 max-w-full">
-        <ReportStatCard title="Receita Total" value={formatCurrency(totalRevenue)} icon={TrendingUp} />
+        <ReportStatCard title="Receita Total" value={formatCurrency(totalRevenue + b2bRevenue)} icon={TrendingUp} />
         <ReportStatCard title="Receita B2B" value={formatCurrency(b2bRevenue)} icon={Store} />
         <ReportStatCard title="Lucro B2B" value={formatCurrency(b2bProfit)} icon={TrendingUp} />
         <ReportStatCard title="Total de Vendas" value={totalSalesCount} icon={ShoppingCart} />

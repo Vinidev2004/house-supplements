@@ -17,8 +17,14 @@ import {
   Clock,
   DollarSign,
 } from "lucide-react"
-import type { Transaction } from "@/lib/types"
-import { getTransactions, addTransaction, deleteTransaction, updateTransactionPaidStatus } from "@/lib/database"
+import type { Transaction, ResaleSale } from "@/lib/types"
+import {
+  getTransactions,
+  addTransaction,
+  deleteTransaction,
+  updateTransactionPaidStatus,
+  getResaleSales,
+} from "@/lib/database"
 import { TransactionForm } from "@/components/transaction-form"
 import { formatCurrency } from "@/lib/utils"
 import { useToast } from "@/hooks/use-toast"
@@ -35,6 +41,7 @@ import {
 
 export default function FinanceiroPage() {
   const [allTransactions, setAllTransactions] = useState<Transaction[]>([])
+  const [resaleSales, setResaleSales] = useState<ResaleSale[]>([])
   const [expenses, setExpenses] = useState<Transaction[]>([])
   const [filteredExpenses, setFilteredExpenses] = useState<Transaction[]>([])
   const [monthFilter, setMonthFilter] = useState("all")
@@ -55,9 +62,11 @@ export default function FinanceiroPage() {
 
   const loadExpenses = async () => {
     setIsLoading(true)
-    const data = await getTransactions()
-    setAllTransactions(data)
-    const expensesOnly = data.filter((t) => t.type === "expense")
+    const [transactionsData, resaleSalesData] = await Promise.all([getTransactions(), getResaleSales()])
+    setAllTransactions(transactionsData)
+    setResaleSales(resaleSalesData)
+
+    const expensesOnly = transactionsData.filter((t) => t.type === "expense")
     setExpenses(expensesOnly.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()))
     setIsLoading(false)
   }
@@ -160,7 +169,9 @@ export default function FinanceiroPage() {
     }
   }
 
-  const totalRevenues = allTransactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
+  const b2bRevenue = resaleSales.reduce((sum, rs) => sum + rs.totalSale, 0)
+  const totalRevenues =
+    allTransactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0) + b2bRevenue
   const totalExpenses = expenses.reduce((sum, e) => sum + e.amount, 0)
   const netProfit = totalRevenues - totalExpenses
   const pendingExpenses = expenses.filter((e) => !e.paid).reduce((sum, e) => sum + e.amount, 0)
@@ -199,13 +210,17 @@ export default function FinanceiroPage() {
         .filter((t) => t.type === "income" && t.date.startsWith(date))
         .reduce((sum, t) => sum + t.amount, 0)
 
+      const dayB2BRevenue = resaleSales
+        .filter((rs) => rs.saleDate.startsWith(date))
+        .reduce((sum, rs) => sum + rs.totalSale, 0)
+
       const dayExpenses = allTransactions
         .filter((t) => t.type === "expense" && t.date.startsWith(date))
         .reduce((sum, t) => sum + t.amount, 0)
 
       return {
         date: new Date(date).toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }),
-        receitas: dayRevenues,
+        receitas: dayRevenues + dayB2BRevenue,
         despesas: dayExpenses,
       }
     })
