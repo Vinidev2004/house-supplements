@@ -751,6 +751,15 @@ export async function addResaleSale(
     // Fetch complete sale data
     const { data: itemsData } = await supabase.from("resale_sale_items").select("*").eq("resale_sale_id", saleData.id)
 
+    await supabase.from("transactions").insert({
+      type: DB_TRANSACTION_TYPES.INCOME,
+      category: "Revendas",
+      description: `Revenda #${saleData.id.substring(0, 8)}`,
+      amount: totalSale,
+      sale_id: saleData.id,
+      paid: true,
+    })
+
     return dbResaleSaleToResaleSale(saleData, sale.storeName, itemsData || [])
   } catch (error) {
     console.error("[v0] Error adding resale sale:", error)

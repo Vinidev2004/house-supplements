@@ -1,11 +1,18 @@
-import { getProducts, getSales, getTransactions } from "./database"
+import { getProducts, getSales, getTransactions, getResaleSales } from "./database"
 import type { DashboardStats } from "./types"
 import { QUERY_LIMITS, SALE_STATUS } from "./constants"
 
 export const calculateDashboardStats = async (): Promise<DashboardStats> => {
-  const [products, sales, transactions] = await Promise.all([getProducts(), getSales(), getTransactions()])
+  const [products, sales, transactions, resaleSales] = await Promise.all([
+    getProducts(),
+    getSales(),
+    getTransactions(),
+    getResaleSales(),
+  ])
 
   const totalRevenue = transactions.filter((t) => t.type === "income").reduce((sum, t) => sum + t.amount, 0)
+
+  const b2bRevenue = resaleSales.reduce((sum, rs) => sum + rs.totalSale, 0)
 
   const totalExpenses = transactions.filter((t) => t.type === "expense").reduce((sum, t) => sum + t.amount, 0)
 
@@ -13,15 +20,19 @@ export const calculateDashboardStats = async (): Promise<DashboardStats> => {
 
   const totalSales = sales.filter((s) => s.status === SALE_STATUS.COMPLETED).length
 
+  const b2bSales = resaleSales.length
+
   const lowStockProducts = products.filter((p) => p.stock <= p.minStock).length
 
   const totalProducts = products.length
 
   return {
     totalRevenue,
+    b2bRevenue,
     totalExpenses,
     netProfit,
     totalSales,
+    b2bSales,
     lowStockProducts,
     totalProducts,
   }

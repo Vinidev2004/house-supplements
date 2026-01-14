@@ -50,9 +50,11 @@ export interface Transaction {
 
 export interface DashboardStats {
   totalRevenue: number
+  b2bRevenue: number
   totalExpenses: number
   netProfit: number
   totalSales: number
+  b2bSales: number
   lowStockProducts: number
   totalProducts: number
 }
