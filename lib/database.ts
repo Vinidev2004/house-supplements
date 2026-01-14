@@ -289,7 +289,6 @@ export async function deleteProduct(id: string): Promise<boolean> {
 export async function getSales(): Promise<Sale[]> {
   const supabase = createClient()
 
-  // Fetch sales with customer data in a single query
   const { data: salesData, error: salesError } = await supabase
     .from("sales")
     .select(`
@@ -304,7 +303,6 @@ export async function getSales(): Promise<Sale[]> {
     return []
   }
 
-  // Transform data
   return (salesData || []).map((sale) => {
     const customerName = (sale as any).customers?.name
     const items = (sale as any).sale_items || []
@@ -316,26 +314,26 @@ export async function addSale(sale: Omit<Sale, "id">): Promise<Sale | null> {
   const supabase = createClient()
 
   try {
-    // Validate stock before starting transaction
-    for (const item of sale.products) {
-      const { data: product, error } = await supabase
-        .from("products")
-        .select("stock, name")
-        .eq("id", item.productId)
-        .single()
+    const productIds = sale.products.map((item) => item.productId)
+    const { data: products, error: productsError } = await supabase
+      .from("products")
+      .select("id, stock, name")
+      .in("id", productIds)
 
-      if (error || !product) {
-        console.error("[v0] Product not found:", item.productId)
+    if (productsError || !products) {
+      throw new Error(ERROR_MESSAGES.PRODUCT_NOT_FOUND)
+    }
+
+    for (const item of sale.products) {
+      const product = products.find((p) => p.id === item.productId)
+      if (!product) {
         throw new Error(ERROR_MESSAGES.PRODUCT_NOT_FOUND)
       }
-
       if (product.stock < item.quantity) {
-        console.error("[v0] Insufficient stock for product:", product.name)
         throw new Error(`${ERROR_MESSAGES.INSUFFICIENT_STOCK}: ${product.name}`)
       }
     }
 
-    // Insert sale
     const { data: saleData, error: saleError } = await supabase
       .from("sales")
       .insert({
@@ -358,23 +356,22 @@ export async function addSale(sale: Omit<Sale, "id">): Promise<Sale | null> {
       subtotal: item.subtotal,
     }))
 
-    const { error: itemsError } = await supabase.from("sale_items").insert(items)
-    if (itemsError) throw itemsError
-
-    const stockUpdates = items.map(async (item) => {
-      const { data: product } = await supabase.from("products").select("stock").eq("id", item.productId).single()
-
-      if (product) {
+    const [itemsResult] = await Promise.all([
+      supabase.from("sale_items").insert(items),
+      ...sale.products.map((item) => {
+        const product = products.find((p) => p.id === item.productId)!
         return supabase
           .from("products")
-          .update({ stock: product.stock - item.quantity, updated_at: new Date().toISOString() })
+          .update({
+            stock: product.stock - item.quantity,
+            updated_at: new Date().toISOString(),
+          })
           .eq("id", item.productId)
-      }
-    })
+      }),
+    ])
 
-    await Promise.all(stockUpdates)
+    if (itemsResult.error) throw itemsResult.error
 
-    // Add transaction
     await supabase.from("transactions").insert({
       type: DB_TRANSACTION_TYPES.INCOME,
       category: "Vendas",
@@ -382,9 +379,9 @@ export async function addSale(sale: Omit<Sale, "id">): Promise<Sale | null> {
       amount: sale.total,
       sale_id: saleData.id,
       paid: true,
+      date: saleData.created_at,
     })
 
-    // Fetch complete sale data
     const { data: itemsData } = await supabase.from("sale_items").select("*").eq("sale_id", saleData.id)
 
     return dbSaleToSale(saleData, itemsData || [], sale.customerName)
@@ -398,14 +395,12 @@ export async function cancelSale(saleId: string): Promise<boolean> {
   const supabase = createClient()
 
   try {
-    // Fetch sale items
     const { data: items, error: itemsError } = await supabase.from("sale_items").select("*").eq("sale_id", saleId)
 
     if (itemsError || !items) {
       throw new Error(ERROR_MESSAGES.SALE_NOT_FOUND)
     }
 
-    // Restore stock for all products in parallel
     const stockRestores = items.map(async (item) => {
       const { data: product } = await supabase.from("products").select("stock").eq("id", item.product_id).single()
 
@@ -419,15 +414,13 @@ export async function cancelSale(saleId: string): Promise<boolean> {
 
     await Promise.all(stockRestores)
 
-    // Delete related data in parallel
     await Promise.all([
       supabase.from("transactions").delete().eq("sale_id", saleId),
       supabase.from("sale_items").delete().eq("sale_id", saleId),
     ])
 
-    // Delete sale
-    const { error: deleteError } = await supabase.from("sales").delete().eq("id", saleId)
-    if (deleteError) throw deleteError
+    const { error } = await supabase.from("sales").delete().eq("id", saleId)
+    if (error) throw error
 
     return true
   } catch (error) {
@@ -452,7 +445,6 @@ export async function getTransactions(): Promise<Transaction[]> {
 export async function addTransaction(transaction: Omit<Transaction, "id">): Promise<Transaction | null> {
   const supabase = createClient()
 
-  // Validate amount
   if (transaction.amount <= 0) {
     console.error("[v0] Transaction amount must be positive")
     return null
@@ -485,7 +477,6 @@ export async function addTransaction(transaction: Omit<Transaction, "id">): Prom
 export async function deleteTransaction(id: string): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
 
-  // Check if transaction is linked to a sale
   const { data: transaction } = await supabase.from("transactions").select("sale_id").eq("id", id).single()
 
   if (transaction?.sale_id) {
@@ -571,7 +562,6 @@ export async function updateCustomer(id: string, updates: Partial<Customer>): Pr
 export async function deleteCustomer(id: string): Promise<{ success: boolean; error?: string }> {
   const supabase = createClient()
 
-  // Check if customer has associated sales
   const { data: sales } = await supabase.from("sales").select("id").eq("customer_id", id).limit(1)
 
   if (sales && sales.length > 0) {
@@ -689,7 +679,6 @@ export async function addResaleSale(
   const supabase = createClient()
 
   try {
-    // Calculate totals
     let totalCost = 0
     let totalSale = 0
 
@@ -701,7 +690,11 @@ export async function addResaleSale(
 
     const profit = totalSale - totalCost
 
-    // Insert resale sale
+    const productIds = items.map((item) => item.productId)
+    const { data: products } = await supabase.from("products").select("id, stock").in("id", productIds)
+
+    const productMap = new Map(products?.map((p) => [p.id, p.stock]) || [])
+
     const { data: saleData, error: saleError } = await supabase
       .from("resale_sales")
       .insert({
@@ -717,7 +710,6 @@ export async function addResaleSale(
 
     if (saleError) throw saleError
 
-    // Insert resale sale items
     if (items.length > 0) {
       const itemsToInsert = items.map((item) => ({
         resale_sale_id: saleData.id,
@@ -731,24 +723,21 @@ export async function addResaleSale(
         profit: item.profit,
       }))
 
-      const { error: itemsError } = await supabase.from("resale_sale_items").insert(itemsToInsert)
-      if (itemsError) throw itemsError
+      await Promise.all([
+        supabase.from("resale_sale_items").insert(itemsToInsert),
+        ...items.map((item) => {
+          const currentStock = productMap.get(item.productId) || 0
+          return supabase
+            .from("products")
+            .update({
+              stock: currentStock - item.quantity,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", item.productId)
+        }),
+      ])
     }
 
-    const stockUpdates = items.map(async (item) => {
-      const { data: product } = await supabase.from("products").select("stock").eq("id", item.productId).single()
-
-      if (product) {
-        return supabase
-          .from("products")
-          .update({ stock: product.stock - item.quantity, updated_at: new Date().toISOString() })
-          .eq("id", item.productId)
-      }
-    })
-
-    await Promise.all(stockUpdates)
-
-    // Add transaction
     await supabase.from("transactions").insert({
       type: DB_TRANSACTION_TYPES.INCOME,
       category: "Revendas",
@@ -756,10 +745,9 @@ export async function addResaleSale(
       amount: totalSale,
       sale_id: saleData.id,
       paid: true,
-      date: sale.saleDate, // Use the sale date instead of auto created_at
+      date: sale.saleDate,
     })
 
-    // Fetch complete sale data
     const { data: itemsData } = await supabase.from("resale_sale_items").select("*").eq("resale_sale_id", saleData.id)
 
     return dbResaleSaleToResaleSale(saleData, sale.storeName, itemsData || [])
@@ -797,10 +785,8 @@ export async function deleteResaleSale(saleId: string): Promise<boolean> {
 
     await supabase.from("transactions").delete().eq("sale_id", saleId)
 
-    // Delete items
     await supabase.from("resale_sale_items").delete().eq("resale_sale_id", saleId)
 
-    // Delete sale
     const { error } = await supabase.from("resale_sales").delete().eq("id", saleId)
     if (error) throw error
 

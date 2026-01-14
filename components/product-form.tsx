@@ -40,9 +40,6 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
     estimatedConsumptionDays: product?.estimatedConsumptionDays?.toString() || "",
   })
 
-  console.log("[v0] ProductForm mounted with product:", product)
-  console.log("[v0] estimatedConsumptionDays field value:", formData.estimatedConsumptionDays)
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     onSubmit({
@@ -54,7 +51,9 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
       minStock: Number.parseInt(formData.minStock),
       supplier: formData.supplier,
       description: formData.description || undefined,
-      estimatedConsumptionDays: formData.estimatedConsumptionDays ? Number.parseInt(formData.estimatedConsumptionDays) : undefined,
+      estimatedConsumptionDays: formData.estimatedConsumptionDays
+        ? Number.parseInt(formData.estimatedConsumptionDays)
+        : undefined,
     })
   }
 
@@ -141,29 +140,26 @@ export function ProductForm({ product, onSubmit, onCancel }: ProductFormProps) {
             min={0}
             value={formData.minStock}
             onChange={(e) => {
-              const value = Number(e.target.value);
+              const value = Number(e.target.value)
               setFormData({
                 ...formData,
-                minStock: value < 0 ? 0 : value
-              });
+                minStock: value < 0 ? "0" : e.target.value,
+              })
             }}
             onKeyDown={(e) => {
-              // Bloqueia digitar "-" e "e"
               if (e.key === "-" || e.key === "e") {
-                e.preventDefault();
+                e.preventDefault()
               }
             }}
             onPaste={(e) => {
-              const paste = e.clipboardData.getData("text");
+              const paste = e.clipboardData.getData("text")
               if (Number(paste) < 0) {
-                e.preventDefault();
+                e.preventDefault()
               }
             }}
             required
           />
         </div>
-
-
 
         <div className="space-y-2 sm:col-span-2">
           <Label htmlFor="estimatedConsumptionDays">Tempo Estimado de Consumo (dias)</Label>
