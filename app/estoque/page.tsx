@@ -35,7 +35,7 @@ export default function EstoquePage() {
   const { toast } = useToast()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [productToDelete, setProductToDelete] = useState<string | null>(null)
-  const [currentUser, setCurrentUser] = useState<{ role: string } | null>(null)
+  const [currentUser, setCurrentUser] = useState<{ role: "admin" | "funcionario" } | null>(null)
 
   useEffect(() => {
     loadProducts()
@@ -53,8 +53,8 @@ export default function EstoquePage() {
     try {
       const response = await fetch("/api/auth/me")
       if (response.ok) {
-        const user = await response.json()
-        setCurrentUser(user)
+        const data = await response.json()
+        setCurrentUser(data.user)
       }
     } catch (error) {
       console.error("Error loading user:", error)
@@ -183,37 +183,37 @@ export default function EstoquePage() {
           <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Estoque</h1>
           <p className="text-sm text-muted-foreground md:text-base">Gerencie seus produtos e controle de estoque</p>
         </div>
-        <Button onClick={openAddDialog} className="w-full sm:w-auto">
-          <Plus className="mr-2 h-4 w-4" />
-          Adicionar Produto
-        </Button>
+        {currentUser?.role === "admin" && (
+          <Button onClick={openAddDialog} className="w-full sm:w-auto">
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Produto
+          </Button>
+        )}
       </div>
 
-      {currentUser?.role === "admin" && (
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Valor em Estoque (Custo)</CardTitle>
-              <Package className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{formatCurrency(totalCostValue)}</div>
-              <p className="text-xs text-muted-foreground">Valor total baseado no preço de custo</p>
-            </CardContent>
-          </Card>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor em Estoque (Custo)</CardTitle>
+            <Package className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{formatCurrency(totalCostValue)}</div>
+            <p className="text-xs text-muted-foreground">Valor total baseado no preço de custo</p>
+          </CardContent>
+        </Card>
 
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Valor em Estoque (Venda)</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-success">{formatCurrency(totalSaleValue)}</div>
-              <p className="text-xs text-muted-foreground">Valor total baseado no preço de venda</p>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Valor em Estoque (Venda)</CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-success">{formatCurrency(totalSaleValue)}</div>
+            <p className="text-xs text-muted-foreground">Valor total baseado no preço de venda</p>
+          </CardContent>
+        </Card>
+      </div>
 
       <Card className="max-w-full overflow-hidden">
         <CardHeader>

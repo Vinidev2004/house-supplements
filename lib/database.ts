@@ -23,6 +23,7 @@ export interface DbSale {
   total: number
   payment_method: string
   customer_id?: string
+  user_id?: string
   created_at: string
 }
 
@@ -131,6 +132,7 @@ function dbSaleToSale(dbSale: DbSale & { customer_id?: string }, items: DbSaleIt
     status: "completed",
     customerId: dbSale.customer_id,
     customerName,
+    userId: dbSale.user_id,
   }
 }
 
@@ -286,10 +288,10 @@ export async function deleteProduct(id: string): Promise<boolean> {
 }
 
 // VENDAS
-export async function getSales(): Promise<Sale[]> {
+export async function getSales(userId?: string): Promise<Sale[]> {
   const supabase = createClient()
 
-  const { data: salesData, error: salesError } = await supabase
+  let query = supabase
     .from("sales")
     .select(`
       *,
@@ -297,6 +299,13 @@ export async function getSales(): Promise<Sale[]> {
       sale_items(*)
     `)
     .order("created_at", { ascending: false })
+
+  // Se userId for fornecido, filtrar apenas vendas desse usuário
+  if (userId) {
+    query = query.eq("user_id", userId)
+  }
+
+  const { data: salesData, error: salesError } = await query
 
   if (salesError) {
     console.error("[v0] Error fetching sales:", salesError)
@@ -310,7 +319,7 @@ export async function getSales(): Promise<Sale[]> {
   })
 }
 
-export async function addSale(sale: Omit<Sale, "id">): Promise<Sale | null> {
+export async function addSale(sale: Omit<Sale, "id">, userId?: string): Promise<Sale | null> {
   const supabase = createClient()
 
   try {
@@ -340,6 +349,7 @@ export async function addSale(sale: Omit<Sale, "id">): Promise<Sale | null> {
         total: sale.total,
         payment_method: sale.paymentMethod,
         customer_id: sale.customerId || null,
+        user_id: userId || null,
       })
       .select()
       .single()

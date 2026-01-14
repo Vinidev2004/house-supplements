@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Calendar, XCircle, Plus, Trash2, ShoppingCart, History } from "lucide-react"
+import { Calendar, XCircle, Plus, Trash2, ShoppingCart, History, User } from "lucide-react"
 import type { Sale, Product, Customer } from "@/lib/types"
 import { getSales, cancelSale, getProducts, addSale, getCustomers } from "@/lib/database"
 import { formatCurrency } from "@/lib/utils"
@@ -31,11 +31,19 @@ interface CartItem {
   discount: number
 }
 
+interface CurrentUser {
+  id: string
+  username: string
+  name: string
+  role: "admin" | "funcionario"
+}
+
 export default function SalesPage() {
   const [sales, setSales] = useState<Sale[]>([])
   const [filteredSales, setFilteredSales] = useState<Sale[]>([])
   const [selectedDate, setSelectedDate] = useState<string>("")
   const [isLoading, setIsLoading] = useState(true)
+  const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null)
 
   // PDV states
   const [products, setProducts] = useState<Product[]>([])
@@ -51,8 +59,22 @@ export default function SalesPage() {
   const { toast } = useToast()
 
   useEffect(() => {
-    loadData()
+    loadCurrentUser()
   }, [])
+
+  const loadCurrentUser = async () => {
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const data = await response.json()
+        setCurrentUser(data.user)
+      }
+    } catch (error) {
+      console.error("Error loading current user:", error)
+    } finally {
+      loadData()
+    }
+  }
 
   useEffect(() => {
     filterSales()
@@ -60,7 +82,27 @@ export default function SalesPage() {
 
   const loadData = async () => {
     setIsLoading(true)
-    const [salesData, productsData, customersData] = await Promise.all([getSales(), getProducts(), getCustomers()])
+
+    let userData: CurrentUser | null = null
+    try {
+      const response = await fetch("/api/auth/me")
+      if (response.ok) {
+        const data = await response.json()
+        userData = data.user
+        setCurrentUser(userData)
+      }
+    } catch (error) {
+      console.error("Error fetching user:", error)
+    }
+
+    const userId = userData?.role === "funcionario" ? userData.id : undefined
+
+    const [salesData, productsData, customersData] = await Promise.all([
+      getSales(userId),
+      getProducts(),
+      getCustomers(),
+    ])
+
     setSales(salesData)
     setFilteredSales(salesData)
     setProducts(productsData)
@@ -185,7 +227,7 @@ export default function SalesPage() {
         customerName: selectedCustomer?.name,
       }
 
-      const result = await addSale(sale)
+      const result = await addSale(sale, currentUser?.id)
       if (result) {
         toast({
           title: "Venda realizada com sucesso!",
@@ -241,7 +283,19 @@ export default function SalesPage() {
     <div className="flex flex-col gap-4 p-4 md:gap-6 md:p-6 max-w-full overflow-x-hidden">
       <div>
         <h1 className="text-2xl font-bold tracking-tight md:text-3xl">Vendas</h1>
-        <p className="text-sm text-muted-foreground md:text-base">Registre novas vendas e consulte o histórico</p>
+        <p className="text-sm text-muted-foreground md:text-base">
+          {currentUser?.role === "funcionario"
+            ? "Registre novas vendas e consulte seu histórico pessoal"
+            : "Registre novas vendas e consulte o histórico completo"}
+        </p>
+        {currentUser?.role === "funcionario" && (
+          <div className="flex items-center gap-2 mt-2">
+            <User className="h-4 w-4 text-muted-foreground" />
+            <span className="text-xs text-muted-foreground">
+              Logado como: <span className="font-medium">{currentUser.name}</span>
+            </span>
+          </div>
+        )}
       </div>
 
       <Tabs defaultValue="pdv" className="w-full">
@@ -253,7 +307,7 @@ export default function SalesPage() {
           </TabsTrigger>
           <TabsTrigger value="historico" className="flex items-center gap-2">
             <History className="h-4 w-4" />
-            Histórico
+            {currentUser?.role === "funcionario" ? "Meu Histórico" : "Histórico"}
           </TabsTrigger>
         </TabsList>
 
@@ -469,7 +523,9 @@ export default function SalesPage() {
 
           <Card className="max-w-full overflow-hidden">
             <CardHeader>
-              <CardTitle className="text-base md:text-lg">Histórico de Vendas</CardTitle>
+              <CardTitle className="text-base md:text-lg">
+                {currentUser?.role === "funcionario" ? "Minhas Vendas" : "Histórico de Vendas"}
+              </CardTitle>
               <CardDescription className="text-xs md:text-sm">
                 {filteredSales.length === 0
                   ? "Nenhuma venda encontrada"
