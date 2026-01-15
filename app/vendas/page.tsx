@@ -19,7 +19,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { Calendar, XCircle, Plus, Trash2, ShoppingCart, History, User } from "lucide-react"
+import { Calendar, XCircle, Plus, Trash2, ShoppingCart, History } from "lucide-react"
 import type { Sale, Product, Customer } from "@/lib/types"
 import { getSales, cancelSale, getProducts, addSale, getCustomers } from "@/lib/database"
 import { formatCurrency } from "@/lib/utils"
@@ -262,11 +262,13 @@ export default function SalesPage() {
             ? "Registre novas vendas"
             : "Registre novas vendas e consulte o histórico completo"}
         </p>
-        {currentUser?.role === "funcionario" && (
+        {currentUser && (
           <div className="flex items-center gap-2 mt-2">
-            <User className="h-4 w-4 text-muted-foreground" />
+            <Badge variant={currentUser.role === "admin" ? "default" : "secondary"}>
+              {currentUser.role === "admin" ? "Administrador" : "Funcionário"}
+            </Badge>
             <span className="text-xs text-muted-foreground">
-              Logado como: <span className="font-medium">{currentUser.name}</span>
+              • <span className="font-medium">{currentUser.name}</span>
             </span>
           </div>
         )}
