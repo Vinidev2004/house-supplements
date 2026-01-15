@@ -6,18 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-import {
-  Menu,
-  LayoutDashboard,
-  Package,
-  ShoppingCart,
-  DollarSign,
-  BarChart3,
-  Users,
-  LogOut,
-  Store,
-  Settings,
-} from "lucide-react"
+import { Menu, LayoutDashboard, Package, ShoppingCart, DollarSign, BarChart3, Users, LogOut, Store } from "lucide-react"
 import Image from "next/image"
 import { logout } from "@/lib/auth"
 import { useUser } from "@/lib/user-context"
@@ -31,7 +20,6 @@ const navigation = [
   { name: "Revendas", href: "/revendas", icon: Store, roles: ["admin", "funcionario"] },
   { name: "Financeiro", href: "/financeiro", icon: DollarSign, roles: ["admin"] },
   { name: "Relatórios", href: "/relatorios", icon: BarChart3, roles: ["admin"] },
-  { name: "Configurações", href: "/configuracoes", icon: Settings, roles: ["admin"] },
 ]
 
 export function MobileNav() {
