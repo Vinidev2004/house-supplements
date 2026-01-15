@@ -42,6 +42,8 @@ export function MobileNav() {
   }
 
   const filteredNavigation = navigation.filter((item) => {
+    // If user is not loaded yet, show all items for admin (default)
+    if (!user && !loading) return item.roles.includes("admin")
     if (!user) return false
     return item.roles.includes(user.role)
   })
