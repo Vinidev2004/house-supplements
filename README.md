@@ -164,6 +164,17 @@ http://localhost:3000
 - Autenticação Supabase (para produção)
 - Senhas hasheadas (quando implementado)
 
+## 🔐 Credenciais de Acesso
+
+### Administrador
+- **Usuário**: house
+- **Senha**: 100620
+
+### Comercial (Funcionário)
+- **Usuário**: Comercial
+- **Senha**: Housecomercial#26
+- **Acesso**: Estoque, Vendas, Clientes, Revendas
+
 ## 🤝 Contribuindo
 
 1. Fork o projeto
