@@ -55,18 +55,13 @@ export default function EstoquePage() {
 
   const loadCurrentUser = async () => {
     try {
-      console.log("[v0] Fetching current user...")
       const response = await fetch("/api/auth/me")
-      console.log("[v0] Response status:", response.status)
       if (response.ok) {
         const data = await response.json()
-        console.log("[v0] User data received:", data.user)
         setCurrentUser(data.user)
-      } else {
-        console.log("[v0] Failed to fetch user, response not ok")
       }
     } catch (error) {
-      console.error("[v0] Error loading user:", error)
+      console.error("Error loading user:", error)
     }
   }
 
@@ -199,8 +194,6 @@ export default function EstoquePage() {
           </Button>
         )}
       </div>
-
-      {console.log("[v0] Current user role:", currentUser?.role, "Should show cards:", currentUser?.role === "admin")}
 
       {currentUser?.role === "admin" && (
         <div className="grid gap-4 sm:grid-cols-2">

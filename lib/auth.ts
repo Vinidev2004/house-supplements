@@ -10,7 +10,6 @@ export async function login(username: string, password: string) {
   try {
     const supabase = await createClient()
 
-    // Buscar usuário por username
     const { data: user, error } = await supabase
       .from("users")
       .select("*")
@@ -22,11 +21,8 @@ export async function login(username: string, password: string) {
       return { success: false, error: "Usuário ou senha incorretos" }
     }
 
-    // Para simplificação, aceitar senha em texto plano durante desenvolvimento
-    // Em produção, você deve verificar o hash bcrypt:
-    // const isPasswordValid = await bcrypt.compare(password, user.password_hash)
-
-    // Verificação temporária simples para desenvolvimento
+    // Verificação de senha (hardcoded para desenvolvimento)
+    // TODO: Implementar bcrypt em produção
     const isPasswordValid =
       (username === "house" && password === "100620") || (username === "func" && password === "1234")
 
@@ -34,7 +30,6 @@ export async function login(username: string, password: string) {
       return { success: false, error: "Usuário ou senha incorretos" }
     }
 
-    // Criar sessão segura
     const cookieStore = await cookies()
     const userData = {
       id: user.id,
@@ -47,14 +42,14 @@ export async function login(username: string, password: string) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
     })
 
     cookieStore.set(USER_DATA_COOKIE, JSON.stringify(userData), {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 7, // 7 days
+      maxAge: 60 * 60 * 24 * 7,
     })
 
     return { success: true, user: userData }
@@ -78,21 +73,15 @@ export async function isAuthenticated() {
 
 export async function getCurrentUser() {
   const cookieStore = await cookies()
-  console.log("[v0] Getting user from cookie...")
   const userDataCookie = cookieStore.get(USER_DATA_COOKIE)
-  console.log("[v0] User data cookie:", userDataCookie?.value)
 
   if (!userDataCookie) {
-    console.log("[v0] No user data cookie found")
     return null
   }
 
   try {
-    const parsed = JSON.parse(userDataCookie.value)
-    console.log("[v0] Parsed user data:", parsed)
-    return parsed
+    return JSON.parse(userDataCookie.value)
   } catch {
-    console.log("[v0] Failed to parse user data cookie")
     return null
   }
 }
