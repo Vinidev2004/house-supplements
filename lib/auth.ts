@@ -78,15 +78,21 @@ export async function isAuthenticated() {
 
 export async function getCurrentUser() {
   const cookieStore = await cookies()
+  console.log("[v0] Getting user from cookie...")
   const userDataCookie = cookieStore.get(USER_DATA_COOKIE)
+  console.log("[v0] User data cookie:", userDataCookie?.value)
 
   if (!userDataCookie) {
+    console.log("[v0] No user data cookie found")
     return null
   }
 
   try {
-    return JSON.parse(userDataCookie.value)
+    const parsed = JSON.parse(userDataCookie.value)
+    console.log("[v0] Parsed user data:", parsed)
+    return parsed
   } catch {
+    console.log("[v0] Failed to parse user data cookie")
     return null
   }
 }
