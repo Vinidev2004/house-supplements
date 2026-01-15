@@ -23,8 +23,8 @@ export function UserProvider({ children }: { children: React.ReactNode }) {
       try {
         const response = await fetch("/api/auth/me")
         if (response.ok) {
-          const userData = await response.json()
-          setUser(userData)
+          const data = await response.json()
+          setUser(data.user || data)
         }
       } catch (error) {
         console.error("Error fetching user:", error)
